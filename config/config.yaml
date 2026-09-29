@@ -1,0 +1,8 @@
+project_name: "ETL Entidades de Control y Fiscalia"
+author: "Diego Fernando Arenas Lasso"
+paths:
+  bronze: "data/bronze"
+  silver: "data/silver"
+  gold: "data/gold"
+sources:
+  api_secop: "https://www.datos.gov.co/resource/p6dx-8zbt.json?$limit=100"

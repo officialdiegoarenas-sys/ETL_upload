@@ -1,0 +1,9 @@
+venv/
+data/bronze/*
+data/silver/*
+data/gold/*
+logs/*
+.env
+__pycache__/
+*.xlsx
+*.csv
