@@ -9,6 +9,11 @@ from extract.extract_fiscalia_api import extraer_datos_api
 from transform.clean_data import transformar_datos
 from load.load_database import generar_capa_gold
 
+# Importamos las funciones del nuevo módulo de Procuraduría
+from extract.extract_procuraduria import extraer_datos_procuraduria
+from transform.transform_procuraduria import transformar_datos_procuraduria
+from load.load_procuraduria import procesar_capa_gold as generar_gold_procuraduria
+
 # Configuración de la carpeta de Logs 
 # esta automatizacion la logramos hacer con IA, para que cada vez que se ejecute el main, este log se actualice. 
 
@@ -56,9 +61,32 @@ def ejecutar_pipeline_completo():
         logging.error("❌ Error crítico en la Capa Gold.")
         return
         
+    # --- PROCESO AÑADIDO: MÓDULO PROCURADURÍA ---
+    logging.info("--- INICIANDO MÓDULO PROCURADURÍA ---")
+    url_csv_proc = "https://www.datos.gov.co/resource/iaeu-rcn6.csv?$limit=1000&$order=fecha_efectos_juridicos%20DESC"
+    bronze_proc = "data/bronze/procuraduria_raw.csv"
+    silver_proc = "data/silver/procuraduria_clean.csv"
+    gold_proc = "data/gold/resumen_procuraduria_gold.csv"
+
+    logging.info("Ejecutando Capa Bronze (Procuraduría)...")
+    if extraer_datos_procuraduria(url_csv_proc, bronze_proc) is None:
+        logging.error("❌ Error crítico en la Capa Bronze de Procuraduría.")
+        return
+
+    logging.info("Ejecutando Capa Silver (Procuraduría)...")
+    if transformar_datos_procuraduria(bronze_proc, silver_proc) is None:
+        logging.error("❌ Error crítico en la Capa Silver de Procuraduría.")
+        return
+
+    logging.info("Ejecutando Capa Gold (Procuraduría)...")
+    if generar_gold_procuraduria(silver_proc, gold_proc) is None:
+        logging.error("❌ Error crítico en la Capa Gold de Procuraduría.")
+        return
+
     logging.info("=======================================================")
     logging.info("  ¡PIPELINE ETL EJECUTADO DE PUNTA A PUNTA CON ÉXITO!  ")
     logging.info("=======================================================")
 
 if __name__ == "__main__":
     ejecutar_pipeline_completo()
+    

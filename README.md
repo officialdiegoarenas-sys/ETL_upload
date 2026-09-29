@@ -2,7 +2,7 @@
 
 - Materia: ETL (Extracción, Transformación y Carga)  
 - Semestre: Semestre 5  
-- Estudiantes: Diego Fernando Arenas Lasso  
+- Estudiantes: Diego Fernando Arenas Lasso, Miguel Angel Herrera Santanilla, Nayda Liseth Sierra Jaramillo, Kevin Ospina Gamboa, Santiago Navia Soto  
  
 
 ---------------------------------------------------------------------
@@ -42,17 +42,22 @@ Avance proyecto 2 corte/
 │
 ├── logs/                       # Registros de ejecución del sistema
 ├── notebooks/                  # Cuadernos para análisis exploratorio (EDA)
+│   ├── analisis_exploratorio.ipynb  # EDA del módulo de la Fiscalía
+│   └── analisis_procuraduria.ipynb  # EDA del módulo de la Procuraduría
 ├── src/                        # Código fuente modular del pipeline
 │   ├── __init__.py
 │   ├── extract/
 │   │   ├── __init__.py
-│   │   └── extract_fiscalia_api.py  # Script de extracción desde la API
+│   │   ├── extract_fiscalia_api.py  # Script de extracción desde la API
+│   │   └── extract_procuraduria.py  # Script de extracción de sanciones (SIRI)
 │   ├── transform/
 │   │   ├── __init__.py
-│   │   └── clean_data.py            # Script de limpieza y estandarización (Silver)
+│   │   ├── clean_data.py            # Script de limpieza y estandarización (Silver)
+│   │   └── transform_procuraduria.py # Transformación módulo Procuraduría
 │   └── load/
 │       ├── __init__.py
-│       └── load_database.py         # Script de agregaciones y analítica (Gold)
+│       ├── load_database.py         # Script de agregaciones y analítica (Gold)
+│       └── load_procuraduria.py     # KPIs y agregaciones módulo Procuraduría
 │
 ├── tests/                      # Pruebas unitarias del pipeline
 │   ├── test_extract.py
@@ -74,14 +79,15 @@ La carpeta `logs/` funciona como la caja negra de auditoría del proyecto. Su co
 
 - ¿Cómo actúa?:** Gracias al módulo de `logging` integrado en el orquestador principal (`main.py`), cada vez que se lanza el pipeline se crea o actualiza automáticamente un archivo de texto llamado `pipeline.log`. En este archivo se registra con fecha, hora exacta y nivel de severidad (INFO o ERROR) el momento exacto en el que arranca cada capa (Bronze, Silver y Gold), el total de registros procesados y si se presentó algún fallo crítico, permitiendo rastrear el comportamiento del programa sin depender únicamente de la pantalla de la terminal.
 ---------------------------------------------------------------------
-# Tecnologías y Librerías Utilizadas
+# Tecnologías y Librerías Utilizadas 1.1
 
 - Python (Versión 3.13): Lenguaje principal de programación para el desarrollo del pipeline.
 - Pandas & NumPy: Manipulación, limpieza, transformación y agregación de los datasets.
 - Requests: Consumo de solicitudes HTTP a las APIs de datos abiertos.
+- Matplotlib & Seaborn: Visualización de datos y generación de gráficos para el Análisis Exploratorio (EDA).
 - Arquitectura Modular y POO: Estructura basada en scripts desacoplados controlados por un orquestador central (main.py).
 
-# Tecnologías y Librerías Utilizadas
+# Tecnologías y Librerías Utilizadas 1.2
 
 Para poner en marcha el proyecto de manera local en Visual Studio Code, sigue estos pasos desde la terminal de PowerShell:
 
