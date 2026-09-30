@@ -6,3 +6,6 @@ paths:
   gold: "data/gold"
 sources:
   api_secop: "https://www.datos.gov.co/resource/p6dx-8zbt.json?$limit=100"
+Repository: https://github.com/officialdiegoarenas-sys/ETL_upload
+Date: 2026-29-09
+
