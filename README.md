@@ -27,13 +27,13 @@ Para mantener un orden riguroso y garantizar la gobernanza y calidad de los dato
 
 # 3. Estructura del Repositorio
 
-El proyecto está organizado de forma modular para separar claramente cada etapa del proceso de ETL y facilitar las pruebas:
+El proyecto está organizado de forma modular para separar claramente cada etapa del proceso de ETL:
 
 
 Avance proyecto 2 corte/
 │
 ├── config/
-│   └── config.yaml             # Archivo centralizado de rutas y parámetros
+│   └── config.yaml             # Archivo centralizado de rutas y parámetros (incluye settings de automatización)
 │
 ├── data/
 │   ├── bronze/                 # Datos en bruto extraídos de la API
@@ -41,6 +41,9 @@ Avance proyecto 2 corte/
 │   └── gold/                   # Datos agregados y modelos analíticos (KPIs)
 │
 ├── logs/                       # Registros de ejecución del sistema
+│   ├── pipeline.log            # Historial del flujo de orquestación
+│   └── logs.txt                # Bitácora de auditoría de usuarios y hardware
+│
 ├── notebooks/                  # Cuadernos para análisis exploratorio (EDA)
 │   ├── analisis_exploratorio.ipynb  # EDA del módulo de la Fiscalía
 │   └── analisis_procuraduria.ipynb  # EDA del módulo de la Procuraduría
@@ -73,21 +76,22 @@ Avance proyecto 2 corte/
 ---------------------------------------------------------------------
 # ¿Qué es y cómo actúa la carpeta `logs/`?
 
-La carpeta `logs/` funciona como la caja negra de auditoría del proyecto. Su comportamiento es el siguiente:
+La carpeta `logs/` funciona como  auditoría del proyecto. Cuenta con un sistema de registro dual:
 
-- ¿Qué significa?: Es el espacio destinado para almacenar de forma persistente el historial técnico de todo lo que ocurre cada vez que ejecutamos el sistema.
+1. `pipeline.log` (Auditoría de Procesos): Creado mediante el módulo de `logging` en el orquestador (`main.py`). Registra con fecha, hora y nivel de severidad (INFO/ERROR) el arranque de cada capa (Bronze, Silver, Gold), la cantidad de registros procesados y los fallos críticos del flujo.
+2. `logs.txt` (Auditoría de Hardware y Usuarios): Funciona como un historial estructurado mediante delimitadores (`;`). Cada vez que se ejecuta una etapa del pipeline, captura información sensible del entorno de ejecución, incluyendo: fecha y hora, etapa actual, nombre del usuario/equipo (`os.getlogin()`), ruta absoluta del script, porcentaje de uso de memoria RAM y temperatura del procesador (`psutil`).
 
-- ¿Cómo actúa?:** Gracias al módulo de `logging` integrado en el orquestador principal (`main.py`), cada vez que se lanza el pipeline se crea o actualiza automáticamente un archivo de texto llamado `pipeline.log`. En este archivo se registra con fecha, hora exacta y nivel de severidad (INFO o ERROR) el momento exacto en el que arranca cada capa (Bronze, Silver y Gold), el total de registros procesados y si se presentó algún fallo crítico, permitiendo rastrear el comportamiento del programa sin depender únicamente de la pantalla de la terminal.
 ---------------------------------------------------------------------
-# Tecnologías y Librerías Utilizadas 1.1
+# Tecnologías y Librerías Utilizadas
 
 - Python (Versión 3.13): Lenguaje principal de programación para el desarrollo del pipeline.
 - Pandas & NumPy: Manipulación, limpieza, transformación y agregación de los datasets.
 - Requests: Consumo de solicitudes HTTP a las APIs de datos abiertos.
 - Matplotlib & Seaborn: Visualización de datos y generación de gráficos para el Análisis Exploratorio (EDA).
+- psutil & socket: Herramientas de telemetría para capturar el consumo de hardware (RAM/Temperatura) y datos del equipo local.
 - Arquitectura Modular y POO: Estructura basada en scripts desacoplados controlados por un orquestador central (main.py).
 
-# Tecnologías y Librerías Utilizadas 1.2
+# Ejecución del Proyecto
 
 Para poner en marcha el proyecto de manera local en Visual Studio Code, sigue estos pasos desde la terminal de PowerShell:
 
@@ -104,8 +108,6 @@ python -m venv venv
 pip install -r requirements.txt
 
 # 4. Ejecutar el Pipeline ETL completo
-Para correr todo el proceso de punta a punta (Extracción en Bronze, Transformación en Silver y Analítica en Gold) con un solo comando, ejecuta el orquestador principal:
+Para correr todo el proceso de punta a punta (Extracción en Bronze, Transformación en Silver, Analítica en Gold y captura de logs) con un solo comando, ejecuta el orquestador principal:
 
 python main.py
-
-

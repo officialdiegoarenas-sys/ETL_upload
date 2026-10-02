@@ -1,11 +1,33 @@
 project_name: "ETL Entidades de Control y Fiscalia"
-author: "Diego Fernando Arenas Lasso"
+author: "Diego Fernando Arenas Lasso, Miguel Angel Herrera Santanilla, Nayda Liseth Sierra Jaramillo, Kevin Ospina Gamboa, Santiago Navia Soto"
+version: "1.0.0"
+environment: "production"
+
+# Estructura (Arquitectura Medallón)
 paths:
   bronze: "data/bronze"
   silver: "data/silver"
   gold: "data/gold"
+  logs: "logs"
+
+# Configuración de la extracción de Datos
 sources:
-  api_secop: "https://www.datos.gov.co/resource/p6dx-8zbt.json?$limit=100"
-Repository: https://github.com/officialdiegoarenas-sys/ETL_upload
-Date: 2026-29-09
+  api_secop: 
+    url: "https://www.datos.gov.co/resource/p6dx-8zbt.json?$limit=100"
+    timeout_seconds: 30 #Si no tengo los datos en 30 segundos, se cancela la solicitud y se considera un error.
+    max_retries: 3 #Debe esperar un momento y volver a intentar descargar los datos hasta 3 veces si la pagina no responde o si hay un error de red.
+  api_procuraduria:
+    url: "https://www.datos.gov.co/resource/iaeu-rcn6.csv?$limit=1000&$order=fecha_efectos_juridicos%20DESC"
+    timeout_seconds: 45 #Si no tengo los datos en 30 segundos, se cancela la solicitud y se considera un error.
+    max_retries: 3 #debe esperar un momento y volver a intentar descargar los datos hasta 3 veces si la pagina no responde o si hay un error de red.
+
+# Parámetros de monitoreo y ejecución automática
+execution:
+  schedule_interval_hours: 24 #todavia no se realiza esta parte, es para un FUTURO
+  log_level: "INFO"   # Se registra cada vez que existan una ejecución del pipeline
+  enable_hardware_monitoring: true # Habilita el monitoreo de recursos del hardware
+  system_alert_email: "alertas_etl@dominio.com" # Es un correo para recibir alertas del sistema en caso de errores  o falloscuando se corre el ETL que estmoa haciendo.
+
+Repository: "https://github.com/officialdiegoarenas-sys/ETL_upload"
+Date: "2026-09-29"
 

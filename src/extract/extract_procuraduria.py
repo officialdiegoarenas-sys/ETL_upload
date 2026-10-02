@@ -1,8 +1,26 @@
 import os
 import pandas as pd
+import datetime #Capturar la fecha y hora de ejecución
+import psutil
 
 def extraer_datos_procuraduria(url_csv: str, ruta_salida: str):
     print("Iniciando extracción de datos de antecedentes y sanciones (SIRI - Procuraduría)...")
+    
+    try:
+        nombre_equipo = os.getlogin()
+    except:
+        nombre_equipo = "Desconocido"
+    ruta_ejecucion = os.path.abspath(__file__)
+    ram_uso = psutil.virtual_memory().percent
+    try:
+        temp_uso = f"{psutil.sensors_temperatures()['coretemp'][0].current}°C"
+    except Exception:
+        temp_uso = "N/A"
+        
+    os.makedirs('logs', exist_ok=True)
+    with open('logs/logs.txt', 'a', encoding='utf-8') as log_file:
+        log_file.write(f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')};Extrayendo datos Procuraduria;{nombre_equipo};{ruta_ejecucion};RAM:{ram_uso}%;Temp:{temp_uso}\n")
+
     try:
         # Descargamos y leemos de forma directa del archivo CSV exportado por la plataforma
         df = pd.read_csv(url_csv)
@@ -30,4 +48,5 @@ if __name__ == "__main__":
     output_path = "data/bronze/procuraduria_raw.csv"
     
     extraer_datos_procuraduria(url_csv, output_path)
+    
 

@@ -1,6 +1,8 @@
 import sys
 import os
 import logging
+import datetime #Capturar la fecha y hora de ejecución
+import psutil
 
 # Aseguramos que la ruta de (src) sea reconocida por Python
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
@@ -30,6 +32,21 @@ logging.basicConfig(
 )
 
 def ejecutar_pipeline_completo():
+    try:
+        nombre_equipo = os.getlogin()
+    except:
+        nombre_equipo = "Desconocido"
+    ruta_ejecucion = os.path.abspath(__file__)
+    ram_uso = psutil.virtual_memory().percent
+    try:
+        temp_uso = f"{psutil.sensors_temperatures()['coretemp'][0].current}°C"
+    except Exception:
+        temp_uso = "N/A"
+        
+    # Registrar apertura del sistema en logs.txt (formato profesor)
+    with open('logs/logs.txt', 'a', encoding='utf-8') as log_file:
+        log_file.write(f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')};Abriendo Orquestador ETL;{nombre_equipo};{ruta_ejecucion};RAM:{ram_uso}%;Temp:{temp_uso}\n")
+
     logging.info("=======================================================")
     logging.info("     INICIANDO PIPELINE ETL: CONTROL Y FISCALÍA        ")
     logging.info("=======================================================")
@@ -86,6 +103,12 @@ def ejecutar_pipeline_completo():
     logging.info("=======================================================")
     logging.info("  ¡PIPELINE ETL EJECUTADO DE PUNTA A PUNTA CON ÉXITO!  ")
     logging.info("=======================================================")
+    
+    # Registrar cierre del sistema en logs.txt (formato profesor)
+    ram_uso_fin = psutil.virtual_memory().percent
+    with open('logs/logs.txt', 'a', encoding='utf-8') as log_file:
+        log_file.write(f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')};Cerrando Orquestador ETL;{nombre_equipo};{ruta_ejecucion};RAM:{ram_uso_fin}%;Temp:{temp_uso}\n")
+
 
 if __name__ == "__main__":
     ejecutar_pipeline_completo()
