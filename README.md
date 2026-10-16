@@ -29,6 +29,10 @@ Para mantener un orden riguroso y garantizar la gobernanza y calidad de los dato
 
 El proyecto está organizado de forma modular para separar claramente cada etapa del proceso de ETL:
 
+Los análisis descriptivos basados en las APIs públicas están documentados en
+[Conclusiones de Fiscalía](./conclusiones_fiscalia.md) y
+[Conclusiones de SECOP II](./conclusiones_secop_ii.md). Sus resultados indican
+el alcance de los datos consultados y no constituyen determinaciones jurídicas.
 
 Avance proyecto 2 corte/
 │
