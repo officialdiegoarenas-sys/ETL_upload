@@ -28,11 +28,11 @@ def generar_gold_fiscalia(ruta_procesos: str, ruta_procesados: str, carpeta_gold
         print(f"Registros cargados desde Silver: {len(procesos)} procesos, {len(procesados)} procesados")
         os.makedirs(carpeta_gold, exist_ok=True)
 
-        # Procesos por año de creacion y capitulo
+        # Procesos por año y capitulo
         por_año = procesos.groupby(['año_creacion', 'capitulo_delito'])['proceso_anonimizado'].nunique().reset_index(name='total_procesos')
         por_año.to_csv(f"{carpeta_gold}/fiscalia_procesos_año_capitulo_gold.csv", index=False, encoding='utf-8')
 
-        # Procesos por departamento y cuantos siguen activos
+        # Procesos por departamento
         procesos['activo'] = (procesos['estado'] == 'Activo').astype(int)
         por_depto = procesos.drop_duplicates('proceso_anonimizado').groupby('departamento_hecho').agg(
             total_procesos=('proceso_anonimizado', 'count'),
@@ -47,12 +47,12 @@ def generar_gold_fiscalia(ruta_procesos: str, ruta_procesados: str, carpeta_gold
         top_delitos = top_delitos.sort_values('total', ascending=False)
         top_delitos.to_csv(f"{carpeta_gold}/fiscalia_top_delitos_gold.csv", index=False, encoding='utf-8')
 
-        # Distribucion por etapa y estado
+        # Etapa y estado
         por_etapa = procesos.groupby(['etapa', 'estado']).size().reset_index(name='total')
         por_etapa['porcentaje'] = (por_etapa['total'] / por_etapa['total'].sum() * 100).round(2)
         por_etapa.to_csv(f"{carpeta_gold}/fiscalia_procesos_etapa_gold.csv", index=False, encoding='utf-8')
 
-        # Sentencias de los procesados por capitulo
+        # Sentencias por capitulo
         procesados['condenado'] = (procesados['tipo_sentencia'] == 'Condenado').astype(int)
         procesados['absuelto'] = (procesados['tipo_sentencia'] == 'Absuelto').astype(int)
         sentencias = procesados.groupby('capitulo_delito').agg(

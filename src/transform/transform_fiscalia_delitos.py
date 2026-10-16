@@ -26,25 +26,24 @@ def quitar_tildes(serie):
 
 
 def limpiar_comun(df, col_depto, col_mpio, col_dane, col_año_hecho, col_mes_hecho):
-    # "Sin Información" se pasa a nulo
+    # Sin Información a nulo
     df = df.replace("Sin Información", pd.NA)
 
-    # Se unifica el titulo (en la fuente viene "Administracion De Publica")
+    # Unificar titulo
     df['titulo_delito'] = "Delitos Contra La Administracion Publica"
 
-    # Departamento y municipio en mayusculas y sin tildes para poder cruzar con otras fuentes
+    # Departamento y municipio sin tildes
     df[col_depto] = quitar_tildes(df[col_depto])
     df[col_mpio] = quitar_tildes(df[col_mpio])
     df[col_dane] = df[col_dane].str.zfill(5)
 
-    # Años y meses a numero (hay meses como "7" y "07")
+    # Años y meses a numero
     for col in [col_año_hecho, col_mes_hecho]:
         df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
 
     # Articulo del codigo penal
     df['articulo'] = df['delito'].str.extract(r'Art\.? ?(\d+\w?)', expand=False).str.upper()
 
-    # Los registros sin capitulo son los que tienen el delito generico del titulo
     df['capitulo_delito'] = df['capitulo_delito'].fillna("NO REGISTRADO")
     return df
 
@@ -57,11 +56,11 @@ def transformar_procesos(ruta_entrada: str, ruta_salida: str):
         df = pd.read_csv(ruta_entrada, dtype=str)
         print(f"Registros cargados desde Bronze: {len(df)}")
 
-        # Columnas que no aportan (constantes, casi todo vacio o se pueden calcular)
+        # Columnas que no se usan
         df = df.drop(columns=['pais_hecho', 'dir_hecho_rural_urbana', 'trimestre_hecho', 'trimestre_creacion',
                               'procedimiento_abreviado', 'fecha_corte_datos'])
 
-        # Un proceso puede tener varios delitos, la llave es proceso + delito
+        # Llave proceso + delito
         df = df.drop_duplicates(subset=['proceso_anonimizado', 'deli_id'])
 
         df = limpiar_comun(df, 'departamento_hecho', 'municipio_hecho', 'cod_dane_hecho', 'a_o_hecho', 'mes_hecho')
@@ -71,7 +70,7 @@ def transformar_procesos(ruta_entrada: str, ruta_salida: str):
         df['mes_creacion'] = df['mes_creacion'].astype(int)
         df['fecha_creacion'] = pd.to_datetime(dict(year=df['año_creacion'], month=df['mes_creacion'], day=1))
 
-        # Hay unos pocos hechos con fecha posterior a la creacion del proceso, se dejan como nulos
+        # Hechos con fecha posterior a la creacion
         df.loc[df['año_hecho'] > df['año_creacion'], ['año_hecho', 'mes_hecho']] = pd.NA
 
         os.makedirs(os.path.dirname(ruta_salida), exist_ok=True)
@@ -93,7 +92,7 @@ def transformar_procesados(ruta_entrada: str, ruta_salida: str):
         df = pd.read_csv(ruta_entrada, dtype=str)
         print(f"Registros cargados desde Bronze: {len(df)}")
 
-        # Se quitan columnas casi vacias o constantes (vistas en el EDA)
+        # Columnas que no se usan
         df = df.drop(columns=['aplica_lgbti', 'identidad_genero_orient_sexual', 'pais_nacimiento', 'etnia',
                               'comunidad_indigena', 'religioso', 'periodista', 'profesor', 'ddhh', 'discapacidad',
                               'trimestre_hecho_origen', 'trimestre_creacion_origen', 'procedimiento_abreviado',
@@ -111,7 +110,6 @@ def transformar_procesados(ruta_entrada: str, ruta_salida: str):
         df['mes_creacion'] = df['mes_creacion'].astype(int)
         df.loc[df['año_hecho'] > df['año_creacion'], ['año_hecho', 'mes_hecho']] = pd.NA
 
-        # Datos de la persona sin informacion
         for col in ['sexo', 'grupo_etario', 'nivel_educativo']:
             df[col] = df[col].fillna("NO REGISTRADO")
 

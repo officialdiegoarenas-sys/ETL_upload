@@ -6,7 +6,7 @@ import pandas as pd
 import datetime #Capturar la fecha y hora de ejecución
 import psutil
 
-# Filtro del titulo de delitos contra la administracion publica (en la fuente viene escrito de dos formas)
+# Filtro de delitos contra la administracion publica
 FILTRO = "titulo_delito in('Delitos Contra La Administracion De Publica','Delitos Contra La Administracion Publica')"
 
 
@@ -44,8 +44,7 @@ def extraer_datos_fiscalia(dataset_id: str, ruta_salida: str, tamano_pagina=5000
     url = f"https://www.datos.gov.co/resource/{dataset_id}.csv"
     os.makedirs(os.path.dirname(ruta_salida), exist_ok=True)
 
-    # Se descarga por paginas y se va guardando en el csv para no llenar la memoria
-    # Se pagina con el :id interno de la API porque con $offset se vuelve muy lento
+    # Descarga por paginas usando el :id de la API
     ultimo_id = None
     total = 0
     while True:
