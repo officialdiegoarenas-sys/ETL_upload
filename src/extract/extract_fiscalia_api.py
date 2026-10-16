@@ -1,10 +1,10 @@
 import os
-import requests
+import requests # para hacer la petición a la API   
 import pandas as pd
 import datetime #Capturar la fecha y hora de ejecución
-import psutil
+import psutil # Para capturar el uso de RAM y temperatura del equipo
 
-def extraer_datos_api(url: str, ruta_salida: str):
+def extraer_datos_api(url: str, ruta_salida: str): #aca definimos la función que extrae los datos de la API y los guarda en un archivo CSV
     print("Iniciando extracción de datos desde la API pública...")
     
     try:

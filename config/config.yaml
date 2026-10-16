@@ -26,7 +26,7 @@ execution:
   schedule_interval_hours: 24 #todavia no se realiza esta parte, es para un FUTURO
   log_level: "INFO"   # Se registra cada vez que existan una ejecución del pipeline
   enable_hardware_monitoring: true # Habilita el monitoreo de recursos del hardware
-  system_alert_email: "alertas_etl@dominio.com" # Es un correo para recibir alertas del sistema en caso de errores  o falloscuando se corre el ETL que estmoa haciendo.
+  system_alert_email: "noexiste@dominio.com" # Es un correo para recibir alertas del sistema en caso de errores  o falloscuando se corre el ETL que estmoa haciendo.
 
 Repository: "https://github.com/officialdiegoarenas-sys/ETL_upload"
 Date: "2026-09-29"

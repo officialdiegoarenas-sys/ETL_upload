@@ -61,21 +61,21 @@ def ejecutar_pipeline_completo():
     logging.info("[1/3] Ejecutando Capa Bronze (Extracción)...")
     df_bronze = extraer_datos_api(url_api, bronze_path)
     if df_bronze is None:
-        logging.error("❌ Error crítico en la Capa Bronze.")
+        logging.error(" Error crítico en la Capa Bronze.")
         return
         
     # Capa Silver (Transformación y Limpieza)
     logging.info("[2/3] Ejecutando Capa Silver (Transformación)...")
     df_silver = transformar_datos(bronze_path, silver_path)
     if df_silver is None:
-        logging.error("❌ Error crítico en la Capa Silver.")
+        logging.error(" Error crítico en la Capa Silver.")
         return
         
     # Capa Gold (Agregación y Analítica)
     logging.info("[3/3] Ejecutando Capa Gold (Analítica / KPIs)...")
     df_gold = generar_capa_gold(silver_path, gold_path)
     if df_gold is None:
-        logging.error("❌ Error crítico en la Capa Gold.")
+        logging.error(" Error crítico en la Capa Gold.")
         return
         
     # --- PROCESO AÑADIDO: MÓDULO PROCURADURÍA ---
@@ -87,17 +87,17 @@ def ejecutar_pipeline_completo():
 
     logging.info("Ejecutando Capa Bronze (Procuraduría)...")
     if extraer_datos_procuraduria(url_csv_proc, bronze_proc) is None:
-        logging.error("❌ Error crítico en la Capa Bronze de Procuraduría.")
+        logging.error(" Error crítico en la Capa Bronze de Procuraduría.")
         return
 
     logging.info("Ejecutando Capa Silver (Procuraduría)...")
     if transformar_datos_procuraduria(bronze_proc, silver_proc) is None:
-        logging.error("❌ Error crítico en la Capa Silver de Procuraduría.")
+        logging.error(" Error crítico en la Capa Silver de Procuraduría.")
         return
 
     logging.info("Ejecutando Capa Gold (Procuraduría)...")
     if generar_gold_procuraduria(silver_proc, gold_proc) is None:
-        logging.error("❌ Error crítico en la Capa Gold de Procuraduría.")
+        logging.error(" Error crítico en la Capa Gold de Procuraduría.")
         return
 
     logging.info("=======================================================")
