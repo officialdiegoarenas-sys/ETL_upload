@@ -7,7 +7,7 @@ import datetime #Capturar la fecha y hora de ejecución
 import psutil
 
 # Filtro de delitos contra la administracion publica
-FILTRO = "titulo_delito in('Delitos Contra La Administracion De Publica','Delitos Contra La Administracion Publica')"
+FILTRO = "titulo_delito not in('Delitos Contra La Administracion De Publica','Delitos Contra La Administracion Publica')"
 
 
 def descargar_pagina(url, params, reintentos=5):
