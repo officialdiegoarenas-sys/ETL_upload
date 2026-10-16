@@ -8,7 +8,7 @@ def registrar_log(etapa):
     try:
         nombre_equipo = os.getlogin()
     except:
-        nombre_equipo = "Desconocido"
+        nombre_equipo = "Desconocido"   
     ruta_ejecucion = os.path.abspath(__file__)
     ram_uso = psutil.virtual_memory().percent
     try:
@@ -28,9 +28,6 @@ def quitar_tildes(serie):
 def limpiar_comun(df, col_depto, col_mpio, col_dane, col_año_hecho, col_mes_hecho):
     # Sin Información a nulo
     df = df.replace("Sin Información", pd.NA)
-
-    # Unificar titulo
-    df['titulo_delito'] = "Delitos Contra La Administracion Publica"
 
     # Departamento y municipio sin tildes
     df[col_depto] = quitar_tildes(df[col_depto])
