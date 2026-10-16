@@ -1,20 +1,20 @@
-import sys # Para manejar la ruta de los módulos y paquetes
-import os #para manejar rutas de archivos y directorios
-import logging # Para registrar los logs de ejecución en un archivo y en la terminal    
+import sys
+import os
+import logging
 import datetime #Capturar la fecha y hora de ejecución
-import psutil # Para obtener información del sistema, como el uso de RAM y la temperatura de la CPU
+import psutil
 
 # Aseguramos que la ruta de (src) sea reconocida por Python
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
-
-from extract.extract_fiscalia_api import extraer_datos_api
-from transform.clean_data import transformar_datos
-from load.load_database import generar_capa_gold
 
 # Importamos las funciones del nuevo módulo de Procuraduría
 from extract.extract_procuraduria import extraer_datos_procuraduria
 from transform.transform_procuraduria import transformar_datos_procuraduria
 from load.load_procuraduria import procesar_capa_gold as generar_gold_procuraduria
+from extract.extract_contraloria import extraer_datos_contraloria
+from transform.transform_contraloria import transformar_datos_contraloria
+from load.load_contraloria import generar_dataset_contraloria
+from pipeline.datos_fiscalia import ejecutar_pipeline_datos_fiscalia
 
 # Configuración de la carpeta de Logs 
 # esta automatizacion la logramos hacer con IA, para que cada vez que se ejecute el main, este log se actualice. 
@@ -32,6 +32,24 @@ logging.basicConfig(
 )
 
 def ejecutar_pipeline_completo():
+    logging.info("--- INICIANDO MÓDULO DATOS FISCALÍA Y SECOP ---")
+    ejecutar_pipeline_datos_fiscalia()
+
+    # Módulo Contraloría: usa una copia del CSV y nunca modifica el archivo fuente.
+    ruta_base = os.path.dirname(os.path.abspath(__file__))
+    fuente_contraloria = r"C:\Users\migue\Downloads\Resultado_de_la_Ejecución_del_Plan_de_Vigilancia_y_Control_Fiscal_20261015.csv"
+    bronze_contraloria = os.path.join(ruta_base, "data", "bronze", "contraloria_raw.csv")
+    silver_contraloria = os.path.join(ruta_base, "data", "silver", "contraloria_clean.csv")
+    gold_contraloria = os.path.join(ruta_base, "data", "gold", "dataset_contraloria.csv")
+    conclusiones_contraloria = os.path.join(ruta_base, "conclusiones_contraloria.md")
+    logging.info("[Contraloría 1/3] Extrayendo el CSV local...")
+    extraer_datos_contraloria(fuente_contraloria, bronze_contraloria)
+    logging.info("[Contraloría 2/3] Transformando datos...")
+    df_contraloria = transformar_datos_contraloria(bronze_contraloria, silver_contraloria)
+    logging.info("[Contraloría 3/3] Generando dataset_contraloria y conclusiones...")
+    generar_dataset_contraloria(silver_contraloria, gold_contraloria, conclusiones_contraloria)
+    logging.info("Contraloría procesada: %s registros.", len(df_contraloria))
+
     try:
         nombre_equipo = os.getlogin()
     except:
@@ -43,7 +61,7 @@ def ejecutar_pipeline_completo():
     except Exception:
         temp_uso = "N/A"
         
-    # Registrar apertura del sistema en logs.txt 
+    # Registrar apertura del sistema en logs.txt (formato profesor)
     with open('logs/logs.txt', 'a', encoding='utf-8') as log_file:
         log_file.write(f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')};Abriendo Orquestador ETL;{nombre_equipo};{ruta_ejecucion};RAM:{ram_uso}%;Temp:{temp_uso}\n")
 
@@ -51,33 +69,6 @@ def ejecutar_pipeline_completo():
     logging.info("     INICIANDO PIPELINE ETL: CONTROL Y FISCALÍA        ")
     logging.info("=======================================================")
     
-    # Definimos las rutas estándar
-    url_api = "https://www.datos.gov.co/resource/p6dx-8zbt.json?$limit=100"
-    bronze_path = "data/bronze/contratos_fiscalia_raw.csv"
-    silver_path = "data/silver/contratos_fiscalia_clean.csv"
-    gold_path = "data/gold/resumen_contratos_gold.csv"
-    
-    # Capa Bronze (Extracción)
-    logging.info("[1/3] Ejecutando Capa Bronze (Extracción)...")
-    df_bronze = extraer_datos_api(url_api, bronze_path)
-    if df_bronze is None:
-        logging.error(" Error crítico en la Capa Bronze.")
-        return
-        
-    # Capa Silver (Transformación y Limpieza)
-    logging.info("[2/3] Ejecutando Capa Silver (Transformación)...")
-    df_silver = transformar_datos(bronze_path, silver_path)
-    if df_silver is None:
-        logging.error(" Error crítico en la Capa Silver.")
-        return
-        
-    # Capa Gold (Agregación y Analítica)
-    logging.info("[3/3] Ejecutando Capa Gold (Analítica / KPIs)...")
-    df_gold = generar_capa_gold(silver_path, gold_path)
-    if df_gold is None:
-        logging.error(" Error crítico en la Capa Gold.")
-        return
-        
     # --- PROCESO AÑADIDO: MÓDULO PROCURADURÍA ---
     logging.info("--- INICIANDO MÓDULO PROCURADURÍA ---")
     url_csv_proc = "https://www.datos.gov.co/resource/iaeu-rcn6.csv?$limit=1000&$order=fecha_efectos_juridicos%20DESC"
@@ -100,9 +91,9 @@ def ejecutar_pipeline_completo():
         logging.error(" Error crítico en la Capa Gold de Procuraduría.")
         return
 
-    logging.info("_______________________________________________________")
+    logging.info("=======================================================")
     logging.info("  ¡PIPELINE ETL EJECUTADO DE PUNTA A PUNTA CON ÉXITO!  ")
-    logging.info("_______________________________________________________")
+    logging.info("=======================================================")
     
     # Registrar cierre del sistema en logs.txt (formato profesor)
     ram_uso_fin = psutil.virtual_memory().percent
