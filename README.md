@@ -111,3 +111,13 @@ pip install -r requirements.txt
 Para correr todo el proceso de punta a punta (Extracción en Bronze, Transformación en Silver, Analítica en Gold y captura de logs) con un solo comando, ejecuta el orquestador principal:
 
 python main.py
+
+## Análisis exploratorio de Contraloría
+
+Con el CSV de resultados de Contraloría disponible localmente, genera las cinco gráficas con:
+
+```powershell
+python .\graficas\graficas_contraloria.py "C:\ruta\al\archivo_de_contraloria.csv"
+```
+
+Las imágenes se guardan en `graficas/contraloria/` y se muestran en `conclusiones_contraloria.md`. Para generar además un informe Markdown independiente, añade `--report ruta\del\informe.md`.

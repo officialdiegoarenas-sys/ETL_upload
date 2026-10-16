@@ -45,3 +45,27 @@ Esto significa que la cuantía está altamente concentrada en pocos registros. C
 4. Revisar los informes de auditoría originales antes de tomar decisiones administrativas o jurídicas.
 
 Estas conclusiones son descriptivas del archivo entregado y no establecen por sí solas responsabilidad jurídica.
+
+## Gráficas exploratorias
+
+Las siguientes gráficas complementan los conteos y las cuantías descritos arriba. Los valores están agregados por los campos del archivo y no equivalen necesariamente a auditorías independientes.
+
+### Composición de hallazgos
+
+![Hallazgos reportados por tipo](graficas/contraloria/01_hallazgos_por_tipo.png)
+
+### Sujetos auditados con más hallazgos
+
+![Top 10 de sujetos auditados por hallazgos](graficas/contraloria/02_top_sujetos_por_hallazgos.png)
+
+### Cuantía fiscal por vigencia
+
+![Cuantía fiscal reportada por vigencia](graficas/contraloria/03_cuantia_por_vigencia.png)
+
+### Hallazgos por vigencia
+
+![Hallazgos acumulados por vigencia](graficas/contraloria/04_hallazgos_por_vigencia.png)
+
+### Registros por modalidad de auditoría
+
+![Registros por modalidad de auditoría](graficas/contraloria/05_registros_por_modalidad.png)
