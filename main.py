@@ -19,6 +19,11 @@ from extract.extract_contraloria import extraer_datos_contraloria
 from transform.transform_contraloria import transformar_datos_contraloria
 from load.load_contraloria import generar_dataset_contraloria
 
+# Módulo Fiscalía - delitos contra la administración pública
+from extract.extract_fiscalia_delitos import extraer_datos_fiscalia
+from transform.transform_fiscalia_delitos import transformar_procesos, transformar_procesados
+from load.load_fiscalia_delitos import generar_gold_fiscalia
+
 # Configuración de la carpeta de Logs 
 # esta automatizacion la logramos hacer con IA, para que cada vez que se ejecute el main, este log se actualice. 
 
@@ -116,6 +121,28 @@ def ejecutar_pipeline_completo():
     logging.info("Ejecutando Capa Gold (Procuraduría)...")
     if generar_gold_procuraduria(silver_proc, gold_proc) is None:
         logging.error(" Error crítico en la Capa Gold de Procuraduría.")
+        return
+
+    # --- MÓDULO FISCALÍA: DELITOS CONTRA LA ADMINISTRACIÓN PÚBLICA ---
+    logging.info("--- INICIANDO MÓDULO FISCALÍA (DELITOS CONTRA LA ADMINISTRACIÓN PÚBLICA) ---")
+    bronze_procesos = "data/bronze/fiscalia_procesos_raw.csv"
+    bronze_procesados = "data/bronze/fiscalia_procesados_raw.csv"
+    silver_procesos = "data/silver/fiscalia_procesos_clean.csv"
+    silver_procesados = "data/silver/fiscalia_procesados_clean.csv"
+
+    logging.info("Ejecutando Capa Bronze (Fiscalía)...")
+    if extraer_datos_fiscalia("dbdv-iihs", bronze_procesos) is None or extraer_datos_fiscalia("piva-db2c", bronze_procesados) is None:
+        logging.error("❌ Error crítico en la Capa Bronze de Fiscalía.")
+        return
+
+    logging.info("Ejecutando Capa Silver (Fiscalía)...")
+    if transformar_procesos(bronze_procesos, silver_procesos) is None or transformar_procesados(bronze_procesados, silver_procesados) is None:
+        logging.error("❌ Error crítico en la Capa Silver de Fiscalía.")
+        return
+
+    logging.info("Ejecutando Capa Gold (Fiscalía)...")
+    if generar_gold_fiscalia(silver_procesos, silver_procesados, "data/gold") is None:
+        logging.error("❌ Error crítico en la Capa Gold de Fiscalía.")
         return
 
     logging.info("=======================================================")
