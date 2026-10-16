@@ -1,4 +1,3 @@
-"""Extracción local del dataset de la Contraloría sin modificar el original."""
 
 from __future__ import annotations
 
