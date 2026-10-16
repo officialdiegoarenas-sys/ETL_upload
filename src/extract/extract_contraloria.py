@@ -6,6 +6,7 @@ import pandas as pd
 
 
 def extraer_datos_contraloria(ruta_fuente: str, ruta_salida: str) -> pd.DataFrame:
+    
     """Extrae, valida y deja documentados los valores desconocidos.
 
     El archivo fuente nunca se modifica. La salida de Bronze sí se normaliza:
