@@ -15,6 +15,9 @@ from load.load_database import generar_capa_gold
 from extract.extract_procuraduria import extraer_datos_procuraduria
 from transform.transform_procuraduria import transformar_datos_procuraduria
 from load.load_procuraduria import procesar_capa_gold as generar_gold_procuraduria
+from extract.extract_contraloria import extraer_datos_contraloria
+from transform.transform_contraloria import transformar_datos_contraloria
+from load.load_contraloria import generar_dataset_contraloria
 
 # Configuración de la carpeta de Logs 
 # esta automatizacion la logramos hacer con IA, para que cada vez que se ejecute el main, este log se actualice. 
@@ -32,6 +35,21 @@ logging.basicConfig(
 )
 
 def ejecutar_pipeline_completo():
+    # Módulo Contraloría: usa una copia del CSV y nunca modifica el archivo fuente.
+    ruta_base = os.path.dirname(os.path.abspath(__file__))
+    fuente_contraloria = r"C:\Users\migue\Downloads\Resultado_de_la_Ejecución_del_Plan_de_Vigilancia_y_Control_Fiscal_20261015.csv"
+    bronze_contraloria = os.path.join(ruta_base, "data", "bronze", "contraloria_raw.csv")
+    silver_contraloria = os.path.join(ruta_base, "data", "silver", "contraloria_clean.csv")
+    gold_contraloria = os.path.join(ruta_base, "data", "gold", "dataset_contraloria.csv")
+    conclusiones_contraloria = os.path.join(ruta_base, "conclusiones_contraloria.md")
+    logging.info("[Contraloría 1/3] Extrayendo el CSV local...")
+    extraer_datos_contraloria(fuente_contraloria, bronze_contraloria)
+    logging.info("[Contraloría 2/3] Transformando datos...")
+    df_contraloria = transformar_datos_contraloria(bronze_contraloria, silver_contraloria)
+    logging.info("[Contraloría 3/3] Generando dataset_contraloria y conclusiones...")
+    generar_dataset_contraloria(silver_contraloria, gold_contraloria, conclusiones_contraloria)
+    logging.info("Contraloría procesada: %s registros.", len(df_contraloria))
+
     try:
         nombre_equipo = os.getlogin()
     except:
