@@ -1,5 +1,3 @@
-"""Carga Gold y conclusiones del dataset de la Contraloría."""
-
 from __future__ import annotations
 
 import os
