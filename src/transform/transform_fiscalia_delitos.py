@@ -29,6 +29,9 @@ def limpiar_comun(df, col_depto, col_mpio, col_dane, col_año_hecho, col_mes_hec
     # Sin Información a nulo
     df = df.replace("Sin Información", pd.NA)
 
+    # Unificar titulo
+    df['titulo_delito'] = "Delitos Contra La Administracion Publica"
+
     # Departamento y municipio sin tildes
     df[col_depto] = quitar_tildes(df[col_depto])
     df[col_mpio] = quitar_tildes(df[col_mpio])
