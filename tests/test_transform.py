@@ -8,9 +8,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 from transform.clean_data import transformar_datos
 from transform.transform_procuraduria import transformar_datos_procuraduria
 from transform.transform_fiscalia_delitos import transformar_procesos, transformar_procesados
+from transform.transform_policia import transformar_datos_policia
 from load.load_database import generar_capa_gold
 from load.load_procuraduria import procesar_capa_gold
 from load.load_fiscalia_delitos import generar_gold_fiscalia
+from load.load_policia import generar_gold_policia
 
 
 @pytest.fixture(autouse=True)
@@ -49,6 +51,21 @@ def procesado(**cambios):
         'nivel_educativo': 'Universitario', 'etnia': 'Sin Información', 'comunidad_indigena': 'Sin Información',
         'religioso': 'No', 'periodista': 'No', 'profesor': 'No', 'ddhh': 'No', 'discapacidad': 'Sin Información',
         'categoria_procesado': 'Sentenciado', 'tipo_sentencia': 'Condenado', 'fecha_actualizacion_datos': '30/09/2026',
+    }
+    fila.update(cambios)
+    return fila
+
+
+def captura_policia(**cambios):
+    fila = {
+        'departamento': 'Bogota',
+        'municipio': 'Bogotá D.C. (CT)',
+        'codigo_dane': '11001000',
+        'fecha_hecho': '15/05/2021',
+        'genero': 'MASCULINO',
+        'descripcion_conducta_captura': 'ARTÍCULO 397. PECULADO POR APROPIACIÓN',
+        'grupo_etario': 'ADULTOS',
+        'cantidad': '1',
     }
     fila.update(cambios)
     return fila
@@ -119,6 +136,49 @@ def test_fiscalia_procesados():
     assert df['departamento_hecho'].iloc[0] == 'BOGOTA, D. C.'
 
 
+def test_policia_limpieza():
+    filas = [
+        captura_policia(),
+        captura_policia(),
+        captura_policia(
+            departamento='Bolívar',
+            municipio='Cartagena (CT)',
+            codigo_dane='13001000',
+            fecha_hecho='20/08/2022',
+            descripcion_conducta_captura='ARTÍCULO 410. CONTRATO SIN CUMPLIMIENTO DE REQUISITO LEGALES',
+            grupo_etario='Sin Información',
+        ),
+        captura_policia(
+            departamento='Valle',
+            municipio='Cali (CT)',
+            codigo_dane='76001000',
+            fecha_hecho='10/11/2023',
+            descripcion_conducta_captura='ARTÍCULO 429. VIOLENCIA CONTRA SERVIDOR PÚBLICO',
+        ),
+    ]
+    pd.DataFrame(filas).to_csv("bronze_policia.csv", index=False)
+
+    df = transformar_datos_policia("bronze_policia.csv", "silver/policia.csv")
+
+    assert len(df) == 3
+    assert df['departamento_hecho'].tolist() == ['BOGOTA, D. C.', 'BOLIVAR', 'VALLE DEL CAUCA']
+    assert df['municipio_hecho'].tolist() == ['BOGOTA D.C.', 'CARTAGENA', 'CALI']
+    assert df['cod_dane_hecho'].tolist() == ['11001', '13001', '76001']
+    assert df['articulo'].tolist() == ['397', '410', '429']
+    assert df['capitulo_delito'].tolist() == [
+        'Del Peculado',
+        'De La Celebracion Indebida De Contratos',
+        'De Los Delitos Contra Los Servidores Publicos',
+    ]
+    assert df['categoria_delito'].tolist() == [
+        'Corrupcion Y Funcion Publica',
+        'Corrupcion Y Funcion Publica',
+        'Contra Servidores Publicos',
+    ]
+    assert df['grupo_etario'].iloc[1] == 'NO REGISTRADO'
+    assert df['año_hecho'].tolist() == [2021, 2022, 2023]
+
+
 def test_gold_secop_y_procuraduria():
     pd.DataFrame({'nombre_entidad': ['A', 'A', 'B'], 'id_del_proceso': [1, 2, 3]}).to_csv("secop.csv", index=False)
     pd.DataFrame({'entidad_sancionado': ['X', 'Y', 'Y']}).to_csv("proc.csv", index=False)
@@ -153,3 +213,22 @@ def test_gold_fiscalia():
     assert bolivar['pct_activos'] == 50.0
     assert sentencias.iloc[0]['pct_condena'] == 25.0
     assert len(os.listdir("gold")) == 6
+
+
+def test_gold_policia():
+    pd.DataFrame([
+        captura_policia(),
+        captura_policia(fecha_hecho='16/05/2021', descripcion_conducta_captura='ARTÍCULO 429. VIOLENCIA CONTRA SERVIDOR PÚBLICO'),
+        captura_policia(departamento='Antioquia', municipio='Medellín (CT)', codigo_dane='05001000', descripcion_conducta_captura='ARTÍCULO 407. COHECHO POR DAR U OFRECER'),
+    ]).to_csv("bronze_policia.csv", index=False)
+    transformar_datos_policia("bronze_policia.csv", "silver/policia.csv")
+
+    depto = generar_gold_policia("silver/policia.csv", "gold_policia", "conclusiones_policia.md")
+    top_delitos = pd.read_csv("gold_policia/policia_top_delitos_gold.csv")
+
+    bogota = depto[depto['departamento_hecho'] == 'BOGOTA, D. C.'].iloc[0]
+    assert bogota['total_capturas'] == 2
+    assert bogota['capturas_corrupcion'] == 1
+    assert bogota['pct_corrupcion'] == 50.0
+    assert len(top_delitos) == 3
+    assert os.path.exists("conclusiones_policia.md")

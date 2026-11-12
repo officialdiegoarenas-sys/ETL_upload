@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 
 import extract.extract_fiscalia_api as secop
 import extract.extract_fiscalia_delitos as fiscalia
+import extract.extract_policia as policia
 from extract.extract_procuraduria import extraer_datos_procuraduria
 
 
@@ -81,3 +82,32 @@ def test_fiscalia_falla_despues_de_reintentos(monkeypatch):
     monkeypatch.setattr(fiscalia.time, "sleep", lambda s: None)
 
     assert fiscalia.extraer_datos_fiscalia("abcd-1234", "data/bronze/fiscalia.csv") is None
+
+
+def test_policia_pagina_y_quita_columnas_internas(monkeypatch):
+    encabezado = ":id,:created_at,:updated_at,:version,departamento,descripcion_conducta_captura,cantidad\n"
+    paginas = [
+        encabezado + "row-1,x,x,x,BOGOTA,ARTÍCULO 397. PECULADO POR APROPIACIÓN,1\nrow-2,x,x,x,ANTIOQUIA,ARTÍCULO 407. COHECHO POR DAR U OFRECER,1\n",
+        encabezado + "row-3,x,x,x,VALLE,ARTÍCULO 410. CONTRATO SIN CUMPLIMIENTO DE REQUISITO LEGALES,1\n",
+    ]
+    llamadas = []
+
+    def get_falso(url, params, timeout):
+        llamadas.append(params["$where"])
+        return RespuestaFalsa(200, texto=paginas[len(llamadas) - 1])
+
+    monkeypatch.setattr(policia.requests, "get", get_falso)
+
+    total = policia.extraer_datos_policia("3jdh-nmwu", "data/bronze/policia.csv", tamano_pagina=2)
+    df = pd.read_csv("data/bronze/policia.csv")
+
+    assert total == 3
+    assert list(df.columns) == ["departamento", "descripcion_conducta_captura", "cantidad"]
+    assert ":id > 'row-2'" in llamadas[1]
+
+
+def test_policia_falla_despues_de_reintentos(monkeypatch):
+    monkeypatch.setattr(policia.requests, "get", lambda url, params, timeout: RespuestaFalsa(503))
+    monkeypatch.setattr(policia.time, "sleep", lambda s: None)
+
+    assert policia.extraer_datos_policia("3jdh-nmwu", "data/bronze/policia.csv") is None

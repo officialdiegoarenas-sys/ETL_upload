@@ -1,4 +1,4 @@
-# Proyecto ETL: Integración de Datos de Entidades de Control y la Fiscalía General de la Nación
+# Proyecto ETL: Integración de Datos de Entidades de Control, Fiscalía y Policía Nacional
 
 - Materia: ETL (Extracción, Transformación y Carga)  
 - Semestre: Semestre 5  
@@ -40,33 +40,51 @@ Avance proyecto 2 corte/
 │   ├── silver/                 # Datos limpios, tipados y sin duplicados
 │   └── gold/                   # Datos agregados y modelos analíticos (KPIs)
 │
+├── graficas/                   # Scripts y visualizaciones analíticas de la capa Gold
+│   ├── graficas_fiscalia.py    # Gráficas del módulo de Fiscalía
+│   └── graficas_policia.py     # Gráficas del módulo de Policía Nacional
+│
 ├── logs/                       # Registros de ejecución del sistema
 │   ├── pipeline.log            # Historial del flujo de orquestación
 │   └── logs.txt                # Bitácora de auditoría de usuarios y hardware
 │
 ├── notebooks/                  # Cuadernos para análisis exploratorio (EDA)
-│   ├── analisis_exploratorio.ipynb  # EDA del módulo de la Fiscalía
-│   └── analisis_procuraduria.ipynb  # EDA del módulo de la Procuraduría
+│   ├── analisis_exploratorio.ipynb      # EDA del módulo base SECOP
+│   ├── analisis_fiscalia_delitos.ipynb  # EDA del módulo de la Fiscalía
+│   ├── analisis_procuraduria.ipynb      # EDA del módulo de la Procuraduría
+│   └── analisis_policia.ipynb           # EDA del módulo de la Policía Nacional
 ├── src/                        # Código fuente modular del pipeline
 │   ├── __init__.py
 │   ├── extract/
 │   │   ├── __init__.py
-│   │   ├── extract_fiscalia_api.py  # Script de extracción desde la API
-│   │   └── extract_procuraduria.py  # Script de extracción de sanciones (SIRI)
+│   │   ├── extract_contraloria.py       # Extracción módulo Contraloría
+│   │   ├── extract_fiscalia_api.py      # Script de extracción desde la API SECOP
+│   │   ├── extract_fiscalia_delitos.py  # Extracción de procesos y procesados (Fiscalía)
+│   │   ├── extract_procuraduria.py      # Script de extracción de sanciones (SIRI)
+│   │   └── extract_policia.py           # Extracción de capturas (Policía Nacional - DIJIN)
 │   ├── transform/
 │   │   ├── __init__.py
-│   │   ├── clean_data.py            # Script de limpieza y estandarización (Silver)
-│   │   └── transform_procuraduria.py # Transformación módulo Procuraduría
+│   │   ├── clean_data.py                # Script de limpieza y estandarización (Silver)
+│   │   ├── transform_contraloria.py     # Transformación módulo Contraloría
+│   │   ├── transform_fiscalia_delitos.py# Transformación módulo Fiscalía
+│   │   ├── transform_procuraduria.py    # Transformación módulo Procuraduría
+│   │   └── transform_policia.py         # Transformación módulo Policía Nacional
 │   └── load/
 │       ├── __init__.py
-│       ├── load_database.py         # Script de agregaciones y analítica (Gold)
-│       └── load_procuraduria.py     # KPIs y agregaciones módulo Procuraduría
+│       ├── load_contraloria.py          # KPIs y conclusiones módulo Contraloría
+│       ├── load_database.py             # Script de agregaciones y analítica (Gold)
+│       ├── load_fiscalia_delitos.py     # KPIs y agregaciones módulo Fiscalía
+│       ├── load_procuraduria.py         # KPIs y agregaciones módulo Procuraduría
+│       └── load_policia.py              # KPIs, agregaciones y conclusiones módulo Policía
 │
-├── tests/                      # Pruebas unitarias del pipeline
+├── tests/                      # Pruebas unitarias y de calidad del pipeline
 │   ├── test_extract.py
 │   ├── test_transform.py
 │   └── test_quality.py
 │
+├── conclusiones_contraloria.md # Informe analítico de Contraloría
+├── conclusiones_procuraduria.md# Informe analítico de Procuraduría
+├── conclusiones_policia.md     # Informe analítico de Policía Nacional
 ├── .env                        # Variables de entorno confidenciales
 ├── .gitignore                  # Archivos excluidos del control de versiones
 ├── main.py                     # Script orquestador principal del ETL

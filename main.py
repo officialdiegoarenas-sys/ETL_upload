@@ -24,6 +24,11 @@ from extract.extract_fiscalia_delitos import extraer_datos_fiscalia
 from transform.transform_fiscalia_delitos import transformar_procesos, transformar_procesados
 from load.load_fiscalia_delitos import generar_gold_fiscalia
 
+# Módulo Policía Nacional - capturas por delitos contra la administración pública
+from extract.extract_policia import extraer_datos_policia
+from transform.transform_policia import transformar_datos_policia
+from load.load_policia import generar_gold_policia
+
 # Configuración de la carpeta de Logs 
 # esta automatizacion la logramos hacer con IA, para que cada vez que se ejecute el main, este log se actualice. 
 
@@ -47,13 +52,16 @@ def ejecutar_pipeline_completo():
     silver_contraloria = os.path.join(ruta_base, "data", "silver", "contraloria_clean.csv")
     gold_contraloria = os.path.join(ruta_base, "data", "gold", "dataset_contraloria.csv")
     conclusiones_contraloria = os.path.join(ruta_base, "conclusiones_contraloria.md")
-    logging.info("[Contraloría 1/3] Extrayendo el CSV local...")
-    extraer_datos_contraloria(fuente_contraloria, bronze_contraloria)
-    logging.info("[Contraloría 2/3] Transformando datos...")
-    df_contraloria = transformar_datos_contraloria(bronze_contraloria, silver_contraloria)
-    logging.info("[Contraloría 3/3] Generando dataset_contraloria y conclusiones...")
-    generar_dataset_contraloria(silver_contraloria, gold_contraloria, conclusiones_contraloria)
-    logging.info("Contraloría procesada: %s registros.", len(df_contraloria))
+    if os.path.isfile(fuente_contraloria):
+        logging.info("[Contraloría 1/3] Extrayendo el CSV local...")
+        extraer_datos_contraloria(fuente_contraloria, bronze_contraloria)
+        logging.info("[Contraloría 2/3] Transformando datos...")
+        df_contraloria = transformar_datos_contraloria(bronze_contraloria, silver_contraloria)
+        logging.info("[Contraloría 3/3] Generando dataset_contraloria y conclusiones...")
+        generar_dataset_contraloria(silver_contraloria, gold_contraloria, conclusiones_contraloria)
+        logging.info("Contraloría procesada: %s registros.", len(df_contraloria))
+    else:
+        logging.warning("[Contraloría] No se encontró el archivo local (%s). Se omite este módulo y continúa el pipeline.", fuente_contraloria)
 
     try:
         nombre_equipo = os.getlogin()
@@ -145,6 +153,27 @@ def ejecutar_pipeline_completo():
         logging.error("❌ Error crítico en la Capa Gold de Fiscalía.")
         return
 
+    # --- MÓDULO POLICÍA NACIONAL: CAPTURAS POR DELITOS CONTRA LA ADMINISTRACIÓN PÚBLICA ---
+    logging.info("--- INICIANDO MÓDULO POLICÍA NACIONAL (CAPTURAS) ---")
+    bronze_policia = "data/bronze/policia_capturas_raw.csv"
+    silver_policia = "data/silver/policia_capturas_clean.csv"
+    conclusiones_policia = "conclusiones_policia.md"
+
+    logging.info("Ejecutando Capa Bronze (Policía Nacional)...")
+    if extraer_datos_policia("3jdh-nmwu", bronze_policia) is None:
+        logging.error("❌ Error crítico en la Capa Bronze de Policía Nacional.")
+        return
+
+    logging.info("Ejecutando Capa Silver (Policía Nacional)...")
+    if transformar_datos_policia(bronze_policia, silver_policia) is None:
+        logging.error("❌ Error crítico en la Capa Silver de Policía Nacional.")
+        return
+
+    logging.info("Ejecutando Capa Gold (Policía Nacional)...")
+    if generar_gold_policia(silver_policia, "data/gold", conclusiones_policia) is None:
+        logging.error("❌ Error crítico en la Capa Gold de Policía Nacional.")
+        return
+
     logging.info("=======================================================")
     logging.info("  ¡PIPELINE ETL EJECUTADO DE PUNTA A PUNTA CON ÉXITO!  ")
     logging.info("=======================================================")
@@ -157,4 +186,3 @@ def ejecutar_pipeline_completo():
 
 if __name__ == "__main__":
     ejecutar_pipeline_completo()
-    

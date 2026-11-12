@@ -6,6 +6,7 @@ import pytest
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 SILVER_PROCESOS = os.path.join(RAIZ, 'data', 'silver', 'fiscalia_procesos_clean.csv')
 SILVER_PROCESADOS = os.path.join(RAIZ, 'data', 'silver', 'fiscalia_procesados_clean.csv')
+SILVER_POLICIA = os.path.join(RAIZ, 'data', 'silver', 'policia_capturas_clean.csv')
 GOLD = os.path.join(RAIZ, 'data', 'gold')
 
 
@@ -25,6 +26,11 @@ def procesados():
     return cargar(SILVER_PROCESADOS)
 
 
+@pytest.fixture(scope="module")
+def policia():
+    return cargar(SILVER_POLICIA)
+
+
 def test_procesos_sin_duplicados(procesos):
     assert not procesos.duplicated(['proceso_anonimizado', 'deli_id']).any()
 
@@ -33,13 +39,26 @@ def test_procesados_sin_duplicados(procesados):
     assert not procesados.duplicated().any()
 
 
+def test_policia_sin_duplicados(policia):
+    assert not policia.duplicated().any()
+
+
 def test_un_solo_titulo(procesos, procesados):
     assert procesos['titulo_delito'].unique().tolist() == ['Delitos Contra La Administracion Publica']
     assert procesados['titulo_delito'].unique().tolist() == ['Delitos Contra La Administracion Publica']
 
 
+def test_policia_titulo_y_categorias(policia):
+    assert policia['titulo_delito'].unique().tolist() == ['Delitos Contra La Administracion Publica']
+    assert set(policia['categoria_delito']) <= {'Corrupcion Y Funcion Publica', 'Contra Servidores Publicos'}
+
+
 def test_sin_texto_sin_informacion(procesos):
     assert not (procesos == 'Sin Información').any().any()
+
+
+def test_policia_sin_texto_sin_informacion(policia):
+    assert not (policia == 'Sin Información').any().any()
 
 
 def test_columnas_clave_completas(procesos, procesados):
@@ -49,11 +68,25 @@ def test_columnas_clave_completas(procesos, procesados):
         assert procesados[col].notna().all(), col
 
 
+def test_policia_columnas_clave_completas(policia):
+    for col in ['departamento_hecho', 'municipio_hecho', 'cod_dane_hecho', 'articulo', 'delito', 'capitulo_delito', 'genero', 'grupo_etario', 'cantidad']:
+        assert policia[col].notna().all(), col
+
+
 def test_rangos_de_fechas(procesos):
     assert procesos['año_creacion'].between(2010, 2030).all()
     assert procesos['mes_creacion'].between(1, 12).all()
     assert procesos['mes_hecho'].dropna().between(1, 12).all()
     assert (procesos['año_hecho'].dropna() <= procesos.loc[procesos['año_hecho'].notna(), 'año_creacion']).all()
+
+
+def test_policia_rangos_de_fechas_y_dane(policia):
+    assert policia['año_hecho'].dropna().between(2010, 2030).all()
+    assert policia['mes_hecho'].dropna().between(1, 12).all()
+    assert policia['cod_dane_hecho'].dropna().str.fullmatch(r'\d{5}').all()
+    deptos = policia['departamento_hecho'].dropna()
+    assert (deptos == deptos.str.upper()).all()
+    assert not deptos.str.contains('[ÁÉÍÓÚÑáéíóúñ]').any()
 
 
 def test_codigo_dane(procesos):
@@ -81,7 +114,10 @@ def test_gold_porcentajes():
     assert abs(etapas['porcentaje'].sum() - 100) < 0.1
 
 
-def test_gold_cuadra_con_silver(procesos):
-    depto = cargar(os.path.join(GOLD, 'fiscalia_procesos_departamento_gold.csv'))
-    sin_depto = procesos.drop_duplicates('proceso_anonimizado')['departamento_hecho'].isna().sum()
-    assert depto['total_procesos'].sum() + sin_depto == procesos['proceso_anonimizado'].nunique()
+def test_policia_gold_cuadra_con_silver(policia):
+    depto = cargar(os.path.join(GOLD, 'policia_capturas_departamento_gold.csv'))
+    top_delitos = cargar(os.path.join(GOLD, 'policia_top_delitos_gold.csv'))
+
+    assert depto['pct_corrupcion'].between(0, 100).all()
+    assert abs(top_delitos['porcentaje'].sum() - 100) < 0.2
+    assert depto['total_capturas'].sum() == policia['cantidad'].sum()

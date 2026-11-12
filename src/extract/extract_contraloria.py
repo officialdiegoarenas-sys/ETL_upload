@@ -1,27 +1,27 @@
-"""Extracción local del dataset de la Contraloría sin modificar el original."""
+"""Extracción del dataset de la Contraloría desde la API de datos.gov.co."""
 
 from __future__ import annotations
 
 import os
+
 import pandas as pd
+import requests
 
 
-def extraer_datos_contraloria(ruta_fuente: str, ruta_salida: str) -> pd.DataFrame:
-    """Extrae, valida y deja documentados los valores desconocidos.
+def extraer_datos_contraloria(url_api: str, ruta_salida: str) -> pd.DataFrame:
+    """Descarga el JSON de Contraloría, guarda Bronze y genera el reporte de calidad."""
+    respuesta = requests.get(url_api, timeout=30)
+    respuesta.raise_for_status()
+    datos = respuesta.json()
+    if not isinstance(datos, list) or not all(isinstance(fila, dict) for fila in datos):
+        raise ValueError("La API de Contraloría no devolvió una lista de registros JSON.")
+    if not datos:
+        raise ValueError("La API de Contraloría no devolvió registros.")
 
-    El archivo fuente nunca se modifica. La salida de Bronze sí se normaliza:
-    los nulos y textos vacíos se reemplazan por ``DESCONOCIDO`` y se genera un
-    reporte de calidad junto a la carpeta ``data/quality``.
-    """
-    if not os.path.isfile(ruta_fuente):
-        raise FileNotFoundError(f"No existe el dataset fuente: {ruta_fuente}")
-    carpeta = os.path.dirname(ruta_salida)
-    if carpeta:
-        os.makedirs(carpeta, exist_ok=True)
-    try:
-        df = pd.read_csv(ruta_fuente, encoding="utf-8-sig")
-    except UnicodeDecodeError:
-        df = pd.read_csv(ruta_fuente, encoding="latin-1")
+    df = pd.DataFrame(datos)
+    carpeta_salida = os.path.dirname(ruta_salida)
+    if carpeta_salida:
+        os.makedirs(carpeta_salida, exist_ok=True)
 
     filas_originales = len(df)
     columnas_originales = list(df.columns)
@@ -43,12 +43,14 @@ def extraer_datos_contraloria(ruta_fuente: str, ruta_salida: str) -> pd.DataFram
         )
 
     df.to_csv(ruta_salida, index=False, encoding="utf-8")
-    calidad_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(ruta_salida))), "quality")
+    calidad_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(ruta_salida))), "quality"
+    )
     os.makedirs(calidad_dir, exist_ok=True)
     calidad_path = os.path.join(calidad_dir, "contraloria_quality.csv")
     pd.DataFrame(reporte).to_csv(calidad_path, index=False, encoding="utf-8")
     print(
-        f"Calidad Contraloría: {filas_originales} filas leídas, "
+        f"Calidad Contraloría: {filas_originales} filas recibidas, "
         f"{len(df)} filas válidas, {len(columnas_originales)} columnas evaluadas."
     )
     print(f"Reporte de calidad: {calidad_path}")
