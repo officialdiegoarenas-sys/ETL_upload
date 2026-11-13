@@ -25,3 +25,5 @@ seaborn
 seaborn
 psutil
 pytest
+fastapi==0.141.1
+uvicorn==0.38.0
