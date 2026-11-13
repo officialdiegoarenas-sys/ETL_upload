@@ -15,9 +15,11 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-URL_DATOS_FISCALIA = "https://www.datos.gov.co/api/v3/views/piva-db2c/query.json"
-URL_DATOS_SECOP = "https://www.datos.gov.co/api/v3/views/p6dx-8zbt/query.json"
-MAX_REGISTROS_MUESTRA = 1_000
+# Endpoint resource (SODA): respeta $limit. El api/v3/views/.../query.json
+# ignoraba el límite y descargaba el dataset completo (cientos de MB).
+URL_DATOS_FISCALIA = "https://www.datos.gov.co/resource/piva-db2c.json"
+URL_DATOS_SECOP = "https://www.datos.gov.co/resource/p6dx-8zbt.json"
+MAX_REGISTROS_MUESTRA = 100
 
 
 def extraer_datos_api(
