@@ -3,6 +3,7 @@ import pandas as pd
 import datetime #Capturar la fecha y hora de ejecución
 import psutil
 
+#Se realiza cambio de el extract de la procuraduría para que lea directamente el CSV exportado desde la plataforma de datos abiertos, evitando la necesidad de web scraping y mejorando la eficiencia del proceso.
 def extraer_datos_procuraduria(url_csv: str, ruta_salida: str):
     print("Iniciando extracción de datos de antecedentes y sanciones (SIRI - Procuraduría)...")
     
