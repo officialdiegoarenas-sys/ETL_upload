@@ -30,6 +30,17 @@ def transformar_datos_contraloria(ruta_entrada: str, ruta_salida: str) -> pd.Dat
         df = pd.read_csv(ruta_entrada, encoding="latin-1")
     df = df.dropna(how="all").drop_duplicates().copy()
     df.columns = [_nombre_columna(columna) for columna in df.columns]
+    alias_columnas = {
+        "modalidad_de_auditor_a": "modalidad_de_auditoria",
+        "cuant_a": "cuantia",
+    }
+    df = df.rename(
+        columns={
+            origen: destino
+            for origen, destino in alias_columnas.items()
+            if origen in df.columns and destino not in df.columns
+        }
+    )
     if "sujeto_auditado" in df.columns:
         df["sujeto_auditado"] = df["sujeto_auditado"].fillna("NO REGISTRADO").astype(str).str.strip()
     for columna in ("hallazgos_administrativos", "hallazgos_disciplinarios", "hallazgos_penales", "hallazgos_fiscales"):

@@ -27,8 +27,8 @@ def extraer_datos_contraloria(
 ) -> pd.DataFrame:
     """Extrae desde la API de datos.gov.co o desde un CSV local si se indica una ruta existente.
 
-    Normaliza la salida de Bronze reemplazando nulos y textos vacíos por
-    ``DESCONOCIDO`` y genera el reporte de calidad en ``data/quality``.
+    Guarda en Bronze los datos recibidos y genera un reporte de valores
+    nulos o vacíos en ``data/quality``.
     """
     es_url = isinstance(ruta_fuente, str) and ruta_fuente.startswith(("http://", "https://"))
 
@@ -55,13 +55,12 @@ def extraer_datos_contraloria(
     for columna in df.columns:
         vacios = df[columna].isna() | df[columna].astype(str).str.strip().eq("")
         cantidad = int(vacios.sum())
-        df.loc[vacios, columna] = "DESCONOCIDO"
         reporte.append(
             {
                 "columna": columna,
                 "filas_evaluadas": len(df),
-                "valores_desconocidos_reemplazados": cantidad,
-                "valores_desconocidos_finales": int(
+                "valores_nulos_o_vacios": cantidad,
+                "valores_desconocidos": int(
                     df[columna].astype(str).str.strip().eq("DESCONOCIDO").sum()
                 ),
             }

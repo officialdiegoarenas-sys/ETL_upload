@@ -9,6 +9,7 @@ from transform.clean_data import transformar_datos
 from transform.transform_procuraduria import transformar_datos_procuraduria
 from transform.transform_fiscalia_delitos import transformar_procesos, transformar_procesados
 from transform.transform_policia import transformar_datos_policia
+from transform.transform_contraloria import transformar_datos_contraloria
 from load.load_database import generar_capa_gold
 from load.load_procuraduria import procesar_capa_gold
 from load.load_fiscalia_delitos import generar_gold_fiscalia
@@ -177,6 +178,28 @@ def test_policia_limpieza():
     ]
     assert df['grupo_etario'].iloc[1] == 'NO REGISTRADO'
     assert df['año_hecho'].tolist() == [2021, 2022, 2023]
+
+
+def test_contraloria_normaliza_columnas_api():
+    pd.DataFrame({
+        'sujeto_auditado': ['Entidad A'],
+        'modalidad_de_auditor_a': ['Regular'],
+        'hallazgos_administrativos': ['12'],
+        'hallazgos_disciplinarios': ['1'],
+        'hallazgos_penales': ['0'],
+        'hallazgos_fiscales': ['2'],
+        'cuant_a': ['$    16,355,215'],
+        'vigencia': ['2019'],
+    }).to_csv("bronze_contraloria.csv", index=False)
+
+    df = transformar_datos_contraloria(
+        "bronze_contraloria.csv",
+        "silver/contraloria.csv",
+    )
+
+    assert df.loc[0, 'modalidad_de_auditoria'] == 'Regular'
+    assert df.loc[0, 'cuantia'] == 16355215
+    assert df.loc[0, 'hallazgos_administrativos'] == 12
 
 
 def test_gold_secop_y_procuraduria():
