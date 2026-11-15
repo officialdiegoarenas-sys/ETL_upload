@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 import extract.extract_fiscalia_api as secop
 import extract.extract_fiscalia_delitos as fiscalia
 import extract.extract_policia as policia
+import extract.extract_contraloria as contraloria
 from extract.extract_procuraduria import extraer_datos_procuraduria
 
 
@@ -53,6 +54,36 @@ def test_procuraduria_lee_csv():
 def test_procuraduria_vacio():
     pd.DataFrame(columns=["numero_siri"]).to_csv("vacio.csv", index=False)
     assert extraer_datos_procuraduria("vacio.csv", "data/bronze/proc.csv") is None
+
+
+def test_contraloria_api_conserva_nulos(monkeypatch):
+    datos = [
+        {"hallazgos_administrativos": 12, "sujeto_auditado": "Entidad A"},
+        {"hallazgos_administrativos": None, "sujeto_auditado": "Entidad B"},
+    ]
+    monkeypatch.setattr(
+        contraloria,
+        "_cargar_desde_api",
+        lambda url: pd.DataFrame(datos),
+    )
+
+    df = contraloria.extraer_datos_contraloria(
+        contraloria.URL_API_CONTRALORIA,
+        "data/bronze/contraloria.csv",
+    )
+
+    assert pd.isna(df.loc[1, "hallazgos_administrativos"])
+    assert df.loc[1, "sujeto_auditado"] == "Entidad B"
+    assert pd.isna(
+        pd.read_csv("data/bronze/contraloria.csv").loc[
+            1, "hallazgos_administrativos"
+        ]
+    )
+    calidad = pd.read_csv("quality/contraloria_quality.csv")
+    assert calidad.loc[
+        calidad["columna"] == "hallazgos_administrativos",
+        "valores_nulos_o_vacios",
+    ].iloc[0] == 1
 
 
 def test_fiscalia_pagina_y_quita_columnas_internas(monkeypatch):

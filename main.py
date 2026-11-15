@@ -30,7 +30,10 @@ from transform.transform_procuraduria import transformar_datos_procuraduria
 from load.load_procuraduria import procesar_capa_gold as generar_gold_procuraduria
 
 # Importaciones de Contraloría
-from extract.extract_contraloria import extraer_datos_contraloria
+from extract.extract_contraloria import (
+    URL_API_CONTRALORIA,
+    extraer_datos_contraloria,
+)
 from transform.transform_contraloria import transformar_datos_contraloria
 from load.load_contraloria import generar_dataset_contraloria
 
@@ -64,52 +67,14 @@ def modulo_fiscalia():
     ejecutar_pipeline_datos_fiscalia()
 
 
-def buscar_fuente_contraloria():
-    """
-    Busca el CSV de Contraloría. Primero la variable de entorno
-    CONTRALORIA_CSV, luego data/raw y por último la carpeta Descargas.
-    """
-    nombre = "Resultado_de_la_Ejecución_del_Plan_de_Vigilancia_y_Control_Fiscal"
-
-    env = os.environ.get("CONTRALORIA_CSV")
-    if env and os.path.isfile(env):
-        return env
-
-    carpetas = [
-        ruta("data", "raw"),
-        ruta("data"),
-        os.path.join(os.path.expanduser("~"), "Downloads"),
-        os.path.join(os.path.expanduser("~"), "Descargas"),
-    ]
-
-    for carpeta in carpetas:
-        if not os.path.isdir(carpeta):
-            continue
-        for archivo in sorted(os.listdir(carpeta), reverse=True):
-            if archivo.startswith(nombre) and archivo.endswith(".csv"):
-                return os.path.join(carpeta, archivo)
-
-    return None
-
-
 def modulo_contraloria():
-    fuente = buscar_fuente_contraloria()
     bronze = ruta("data", "bronze", "contraloria_raw.csv")
     silver = ruta("data", "silver", "contraloria_clean.csv")
     gold = ruta("data", "gold", "dataset_contraloria.csv")
     conclusiones = ruta("conclusiones_contraloria.md")
 
-    if fuente is None:
-        # Si ya hay bronze de una corrida anterior se sigue desde ahí
-        if not os.path.isfile(bronze):
-            raise FileNotFoundError(
-                "No se encontró el CSV de Contraloría. Ponlo en data/raw "
-                "o define la variable CONTRALORIA_CSV."
-            )
-        logging.warning("Sin CSV fuente, se usa el bronze existente.")
-    else:
-        logging.info("[Contraloría 1/3] Extrayendo: %s", fuente)
-        extraer_datos_contraloria(fuente, bronze)
+    logging.info("[Contraloría 1/3] Extrayendo desde la API: %s", URL_API_CONTRALORIA)
+    extraer_datos_contraloria(URL_API_CONTRALORIA, bronze)
 
     logging.info("[Contraloría 2/3] Transformando datos...")
     df = transformar_datos_contraloria(bronze, silver)
