@@ -22,7 +22,8 @@ def transformar_datos_procuraduria(ruta_entrada: str, ruta_salida: str):
         log_file.write(f"{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')};Transformando datos Procuraduria;{nombre_equipo};{ruta_ejecucion};RAM:{ram_uso}%;Temp:{temp_uso}\n")
 
     try:
-        df = pd.read_csv(ruta_entrada)
+        # Identificadores como texto: evita que una cédula se convierta en número decimal (p. ej. 1038485937.0)
+        df = pd.read_csv(ruta_entrada, dtype={"numero_identificacion": str, "numero_siri": str, "numero_proceso": str})
         print(f"Registros cargados desde Bronze: {len(df)}")
         
         # Eliminamos los duplicados basados en el número de SIRI y las sanciones

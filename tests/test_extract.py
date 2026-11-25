@@ -115,6 +115,31 @@ def test_fiscalia_falla_despues_de_reintentos(monkeypatch):
     assert fiscalia.extraer_datos_fiscalia("abcd-1234", "data/bronze/fiscalia.csv") is None
 
 
+def test_procuraduria_descarga_paginada_sin_perder_ni_repetir(monkeypatch):
+    import extract.extract_procuraduria as proc
+
+    filas = [f"{i},{1000 + i}" for i in range(7)]            # 7 filas, páginas de 3 -> 3 solicitudes
+    pedidos = []
+
+    def falso_get(url, timeout=None):
+        pedidos.append(url)
+        offset = int(url.split("%24offset=")[1].split("&")[0])
+        return RespuestaFalsa(200, texto="numero_siri,numero_identificacion\n" + "\n".join(filas[offset:offset + 3]) + "\n")
+
+    falso_get_resp = lambda url, timeout=None: _con_raise(falso_get(url, timeout))
+    monkeypatch.setattr(proc.requests, "get", falso_get_resp)
+
+    df = proc.descargar_paginado("https://x.test/r.csv?$limit=1000&$order=fecha%20DESC", tamano_pagina=3)
+
+    assert len(df) == 7 and df["numero_siri"].is_unique
+    assert len(pedidos) == 3
+    assert all("%24limit=3" in p and "%3Aid" in p for p in pedidos)       # ignora el $limit/$order original
+    assert "fecha" not in pedidos[0]
+
+
+def _con_raise(resp):
+    resp.raise_for_status = lambda: None
+    return resp
 def test_policia_pagina_y_quita_columnas_internas(monkeypatch):
     encabezado = ":id,:created_at,:updated_at,:version,departamento,descripcion_conducta_captura,cantidad\n"
     paginas = [

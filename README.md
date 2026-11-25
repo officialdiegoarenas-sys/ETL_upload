@@ -59,6 +59,9 @@ Avance proyecto 2 corte/
 │   └── analisis_policia.ipynb           # EDA del módulo de la Policía Nacional
 ├── src/                        # Código fuente modular del pipeline
 │   ├── __init__.py
+│   ├── agente/
+│   │   ├── __init__.py
+│   │   └── agente_entidades.py          # Motor analítico y de cruce interinstitucional
 │   ├── extract/
 │   │   ├── __init__.py
 │   │   ├── extract_contraloria.py       # Extracción módulo Contraloría
@@ -133,3 +136,91 @@ pip install -r requirements.txt
 Para correr todo el proceso de punta a punta (Extracción en Bronze, Transformación en Silver, Analítica en Gold y captura de logs) con un solo comando, ejecuta el orquestador principal:
 
 python main.py
+
+---------------------------------------------------------------------
+# Dashboard de visualización (carpeta `App/`)
+
+Última etapa del recorrido ETL (Clase 21): Gold → (API) → App de visualización. La app se construyó con
+Streamlit (herramienta gratuita recomendada en clase) y Plotly. Está pensada para abogados de la entidad
+(45 a 65 años): letra grande, botones amplios, una pregunta por pantalla y títulos que dicen la conclusión
+(storytelling de datos: estructura Y - PERO - POR LO TANTO en la portada).
+
+# Qué incluye
+- Login simulado: el correo debe contener la palabra `fiscalia` (ej. `diegofiscalia@gmail.com`); la contraseña puede ser cualquiera y no se guarda.
+- **Agente Analítico Inteligente de Integración de Entidades:** permite realizar preguntas en lenguaje natural o mediante sugerencias guiadas para cruzar simultáneamente las tres entidades de control (**Fiscalía General de la Nación**, **Procuraduría General de la Nación** y **Contraloría General de la República**), junto a la contratación pública (**SECOP II**). Ofrece:
+  - Cálculo de índice y nivel de alerta interinstitucional (Baja, Moderada, Alta).
+  - Narrativa analítica unificada y KPIs consolidados.
+  - Visualizaciones dinámicas y específicas en Plotly (comparativa entre entidades, distribución territorial por departamento, tipología de hallazgos, tipos de sanción y cuantía económica observada).
+  - Desglose tabular por entidad y exportación de dictamen en Markdown.
+  - Endpoints REST en FastAPI: `GET /agente/consulta?q=...` y `GET /agente/sugerencias`.
+- 13 reportes en 4 secciones (Fiscalía, Contratación pública, Sanciones, Contraloría). Cada uno trae título-conclusión, gráfica sencilla, «Cómo leerla», advertencia de alcance y tabla de números.
+- Favoritos: cada gráfica se puede guardar; aparecen en «Mis favoritos» y en la portada.
+- Calendario interactivo: recordatorios propios (audiencias, plazos, reuniones), festivos de Colombia calculados (Ley Emiliani), fechas de actualización del ETL y calculadora de plazos en días hábiles.
+-  Consulta por cédula o número de proceso:la funcionaria escribe un dato (en el inicio o en «Consultar») y la app llama a la API `GET /consulta?q=...`, que busca solo coincidencias exactas en la capa Gold de consulta del warehouse (`gold_consulta_sanciones`, `gold_consulta_contratos`, construidas por `src/data_warehouse/consulta.py` al final de `main.py`).
+  - Procuraduría (SIRI) (toda su base: ~42.000 registros, ~14.400 personas) y SECOP II (solo una muestra) son consultables: traen cédula/NIT y número de proceso reales.
+  - Contraloría (527 registros, API `wasc-xi4h`): se consulta por nombre de la entidad auditada (no trae personas) y tiene su propia sección con 3 reportes.
+  - Fiscalía: los datos abiertos son anonimizados (identificadores cifrados), por lo que no se puede buscar por cédula ni por radicado; requiere acceso a datos internos.
+  - Que no haya coincidencias no significa que la persona no tenga procesos; la pantalla lo advierte.
+- Responsivo: PC, tableta y celular (menú lateral en pantallas pequeñas, calendario de 7 columnas siempre) y control de tamaño de letra.
+- Datos: lee la capa Gold (`data/gold`) con rutas relativas definidas en `config/config.yaml` (sección `app`). Con `fuente_datos: "api"` consume los endpoints `/gold/{dataset}` de la API FastAPI y, si la API no responde, vuelve al CSV.
+
+## Síntesis con IA local (Ollama)
+
+El agente consulta primero el Data Warehouse y usa esos resultados como contexto (patrón RAG) para redactar la síntesis. La IA no reemplaza las consultas SQL ni calcula los indicadores. Si Ollama está apagado, no tiene el modelo seleccionado o falla la generación, el agente conserva la respuesta analítica determinística.
+
+1. Instale e inicie Ollama desde [ollama.com](https://ollama.com/).
+2. En una terminal, descargue el modelo liviano recomendado (rápido) y opcionalmente el modelo profundo:
+   ```powershell
+   ollama pull qwen2.5:1.5b        # Recomendado (rápido y ligero)
+   ollama pull llama3.1:latest     # Opcional (análisis más extenso)
+   ```
+3. Asegúrese de que el servicio de Ollama esté activo en `http://localhost:11434` (`ollama serve` si no inició en segundo plano) y verifique los modelos con `ollama list`. La interfaz del Agente Analítico los detectará automáticamente en el selector.
+4. Inicie FastAPI y Streamlit como se describe abajo.
+
+La ruta predeterminada es `http://localhost:11434`. Para usar otro host, defina la variable de entorno `OLLAMA_HOST` antes de iniciar la API y la aplicación (por ejemplo, `http://127.0.0.1:11434`). El estado se puede consultar en `GET /agente/ollama/estado`.
+
+# Estructura
+```
+App/
+├── app.py          # punto de entrada (navegación y login)
+├── agente_ui.py    # pantalla e interfaz del Agente Analítico
+├── paginas.py      # pantallas: inicio, agente, secciones, calendario, favoritos, ayuda
+├── reportes.py     # catálogo de reportes (gráficas + storytelling)
+├── calendario.py   # festivos, días hábiles y calendario
+├── datos.py        # lectura de la capa Gold / API y limpieza de etiquetas
+├── almacen.py      # favoritos y recordatorios por usuario (JSON local, fuera de Git)
+├── acceso.py       # validación del login simulado
+├── estilos.py      # identidad visual (azul, amarillo, rojo) y CSS responsivo
+└── .streamlit/config.toml
+```
+
+# Cómo ejecutarlo
+```powershell
+# 1) (una sola vez) entorno e instalación
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+
+# 2) generar la capa Gold si aún no existe
+python main.py
+
+# 3) (opcional, recomendado) encender Ollama para el Agente Analítico con IA
+ollama serve                        # o abrir la app de escritorio Ollama
+
+# 4) iniciar la API (terminal 1, desde la raíz) - el dashboard la consume
+uvicorn api.main:app --reload       # http://127.0.0.1:8000/docs
+
+# 5) abrir el dashboard (terminal 2, como en clase: desde la carpeta App)
+cd App
+streamlit run app.py                # http://localhost:8501
+```
+`iniciar_dashboard.bat` (doble clic) levanta ambos. El dashboard usa la API (`fuente_datos: "api"` en `config/config.yaml`); para los reportes, si la API no responde, lee la capa Gold directamente. La consulta por cédula/proceso solo funciona con la API encendida.
+
+# Pruebas
+```powershell
+pytest tests -q        # incluye tests/test_app.py (login, datos Gold, favoritos, calendario y API)
+```
+
+# Alcance y límites conocidos
+- Las cifras de SECOP II corresponden a una muestra (`$limit=100`), no al universo de contratos.
+- Las cifras son descriptivas y no constituyen determinaciones jurídicas.

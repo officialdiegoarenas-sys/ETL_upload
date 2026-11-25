@@ -1,9 +1,40 @@
+import io
 import os
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 import pandas as pd
+import requests
 import datetime #Capturar la fecha y hora de ejecución
 import psutil
 
-#Se realiza cambio de el extract de la procuraduría para que lea directamente el CSV exportado desde la plataforma de datos abiertos, evitando la necesidad de web scraping y mejorando la eficiencia del proceso.
+TAMANO_PAGINA = 25000   # filas por solicitud (el portal limita el tamaño de cada respuesta)
+MAX_PAGINAS = 40         # tope de seguridad: 1.000.000 de filas
+
+
+def descargar_paginado(url_csv: str, tamano_pagina: int = TAMANO_PAGINA, max_paginas: int = MAX_PAGINAS,
+                       timeout: int = 120) -> pd.DataFrame:
+    """Descarga TODO el dataset de datos.gov.co (Socrata) página por página.
+
+    Se ignora cualquier $limit/$offset/$order de la URL y se ordena por :id (orden estable),
+    para que ninguna fila se repita ni se pierda entre páginas.
+    """
+    partes = urlsplit(url_csv)
+    otros = [(k, v) for k, v in parse_qsl(partes.query) if k not in ("$limit", "$offset", "$order")]
+    paginas = []
+    for n in range(max_paginas):
+        consulta = urlencode(otros + [("$limit", tamano_pagina), ("$offset", n * tamano_pagina), ("$order", ":id")])
+        resp = requests.get(urlunsplit(partes._replace(query=consulta)), timeout=timeout)
+        resp.raise_for_status()
+        pagina = pd.read_csv(io.StringIO(resp.text), dtype=str)
+        if pagina.empty:
+            break
+        paginas.append(pagina)
+        print(f"  página {n + 1}: {len(pagina)} filas")
+        if len(pagina) < tamano_pagina:
+            break
+    return pd.concat(paginas, ignore_index=True) if paginas else pd.DataFrame()
+
+
 def extraer_datos_procuraduria(url_csv: str, ruta_salida: str):
     print("Iniciando extracción de datos de antecedentes y sanciones (SIRI - Procuraduría)...")
     
@@ -24,7 +55,8 @@ def extraer_datos_procuraduria(url_csv: str, ruta_salida: str):
 
     try:
         # Descargamos y leemos de forma directa del archivo CSV exportado por la plataforma
-        df = pd.read_csv(url_csv)
+        # URL del portal -> descarga paginada de toda la base; ruta local -> lectura directa
+        df = descargar_paginado(url_csv) if url_csv.startswith("http") else pd.read_csv(url_csv)
         
         if not df.empty:
             # Aseguramos que exista la carpeta bronze
@@ -44,8 +76,8 @@ def extraer_datos_procuraduria(url_csv: str, ruta_salida: str):
         return None
 
 if __name__ == "__main__":
-    # Endpoint de exportación CSV directo con límite de registros para mantener el flujo ágil
-    url_csv = "https://www.datos.gov.co/resource/iaeu-rcn6.csv?$limit=1000"
+    # Endpoint de exportación CSV; se descarga toda la base de forma paginada
+    url_csv = "https://www.datos.gov.co/resource/iaeu-rcn6.csv"
     output_path = "data/bronze/procuraduria_raw.csv"
     
     extraer_datos_procuraduria(url_csv, output_path)

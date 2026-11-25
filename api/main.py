@@ -1,12 +1,22 @@
 import os
 import sqlite3
+import sys
+import unicodedata
+from pathlib import Path
+from typing import Optional
 
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 # Rutas del proyecto
 RUTA_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUTA_DB = os.path.join(RUTA_BASE, "data_warehouse", "warehouse.db")
+
+# La lógica de consulta vive en src/data_warehouse (la comparten la API y el ETL)
+sys.path.insert(0, os.path.join(RUTA_BASE, "src"))
+from data_warehouse import consulta as consulta_unificada  # noqa: E402
+from agente.agente_entidades import AgenteEntidadesControl  # noqa: E402
 
 app = FastAPI(
     title="API ETL - Consulta de fuentes de datos",
@@ -106,7 +116,17 @@ def inicio():
     return {
         "proyecto": "ETL - Fiscalía, SECOP, Procuraduría y Contraloría",
         "docs": "/docs",
-        "rutas": ["/health", "/fuentes", "/resumen", "/buscar?q=texto"],
+        "rutas": [
+            "/health",
+            "/fuentes",
+            "/resumen",
+            "/buscar?q=texto",
+            "/gold",
+            "/gold/{dataset}",
+            "/consulta?q=cedula_o_proceso",
+            "/agente/consulta?q=pregunta",
+            "/agente/sugerencias",
+        ],
     }
 
 
@@ -270,6 +290,52 @@ def buscar(q: str = Query(..., min_length=2), max_por_tabla: int = Query(5, ge=1
 
 
 
+def _normalizar(nombre):
+    # 'fiscalia_procesos_año_capitulo_gold' -> 'fiscalia_procesos_ano_capitulo'
+    sin_tilde = "".join(c for c in unicodedata.normalize("NFKD", nombre) if not unicodedata.combining(c))
+    return sin_tilde.lower().removesuffix("_gold")
+
+
+def archivos_gold():
+    carpeta = Path(RUTA_BASE) / "data" / "gold"
+    if not carpeta.exists():
+        return {}
+    return {_normalizar(a.stem): a for a in sorted(carpeta.glob("*.csv"))}
+
+
+@app.get("/gold")
+def listar_gold():
+    # Datasets de la capa Gold disponibles para el dashboard
+    return [{"nombre": n, "archivo": a.name} for n, a in archivos_gold().items()]
+
+
+@app.get("/gold/{nombre}")
+def consultar_gold(nombre: str):
+    # Devuelve un dataset Gold completo (lo consume el dashboard de la carpeta App)
+    archivos = archivos_gold()
+    if nombre not in archivos:
+        raise HTTPException(status_code=404, detail=f"No existe el dataset Gold '{nombre}'. Opciones: {list(archivos)}")
+    df = pd.read_csv(archivos[nombre], encoding="utf-8")
+    df = df.astype(object).where(pd.notnull(df), None)
+    return {
+        "dataset": nombre,
+        "total_registros": len(df),
+        "Nombre_columnas": df.columns.tolist(),
+        "Data": df.to_dict(orient="records"),
+    }
+
+
+@app.get("/consulta")
+def consultar(q: str = Query(..., min_length=4, max_length=60, description="Cédula/NIT o número de proceso")):
+    # Búsqueda unificada por cédula/NIT o número de proceso (solo coincidencias exactas)
+    try:
+        return consulta_unificada.buscar(q, RUTA_DB)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error))
+    except consulta_unificada.ConsultaNoDisponible as error:
+        raise HTTPException(status_code=503, detail=str(error))
+
+
 @app.get("/cargas")
 def historial_cargas(limite: int = Query(20, ge=1, le=200)):
     # Últimas cargas hechas al warehouse (para saber qué tan actuales son los datos)
@@ -286,3 +352,41 @@ def historial_cargas(limite: int = Query(20, ge=1, le=200)):
     ).fetchall()
     conexion.close()
     return [dict(fila) for fila in filas]
+
+
+@app.get("/agente/consulta")
+def agente_consulta(
+    q: str = Query(..., min_length=2, description="Pregunta o entidad a consultar"),
+    usar_ia: bool = Query(True, description="Usar modelo local Ollama si está disponible"),
+    modelo: Optional[str] = Query(None, description="Modelo de Ollama (ej. qwen2.5:1.5b o llama3.1:latest)"),
+):
+    # Agente analítico que cruza la información de las 3 entidades de control (con IA local Ollama)
+    try:
+        agente = AgenteEntidadesControl(RUTA_DB)
+        res = agente.consultar(q, usar_ia=usar_ia, modelo_ia=modelo)
+        graficas_serializables = {}
+        for k, v in res.get("graficas", {}).items():
+            fig_dict = v["fig"].to_dict() if hasattr(v["fig"], "to_dict") else v["fig"]
+            graficas_serializables[k] = {
+                "titulo": v["titulo"],
+                "descripcion": v["descripcion"],
+                "figura": fig_dict,
+            }
+        res["graficas"] = graficas_serializables
+        return res
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+
+@app.get("/agente/sugerencias")
+def agente_sugerencias():
+    # Preguntas recomendadas para el agente de integración
+    return AgenteEntidadesControl.obtener_sugerencias()
+
+
+@app.get("/agente/ollama/estado")
+def agente_ollama_estado():
+    # Verifica si Ollama está en línea y los modelos disponibles
+    activo, modelos = AgenteEntidadesControl.verificar_ollama()
+    return {"activo": activo, "modelos": modelos}
+
