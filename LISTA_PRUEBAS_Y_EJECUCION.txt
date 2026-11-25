@@ -1,0 +1,54 @@
+DASHBOARD DE ENTIDADES DE CONTROL
+Abrir la carpeta del proyecto en Visual Studio Code (File > Open Folder) y
+luego Terminal > New Terminal. La carpeta debe contener iniciar_dashboard.bat.
+---------------------------------------------------------------------
+
+CODIGO 1: INSTALAR (solo la primera vez, tarda unos 3 minutos)
+
+    python -m venv .venv
+    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+
+CODIGO 2: EJECUTAR Y VER EL DASHBOARD
+
+    .\iniciar_dashboard.bat
+
+    Se abre en http://localhost:8501
+    Ingreso: un correo con "fiscalia" (ej. diegofiscalia@gmail.com) y cualquier contrasena.
+    Se abre una ventana negra (la API): dejarla abierta.
+
+
+LISTADO PARA PROBAR (pantalla "Consultar")
+---------------------------------------------------------------------
+CEDULAS (Procuraduria)
+  12995790      14 sanciones (Alcaldia de San Juan de Pasto)
+  43381138      12 registros (Alcaldia de Argelia, Antioquia)
+  73086958      12 registros (Juzgado Promiscuo Municipal)
+  1192801117    1 sancion (dragoneante del INPEC)
+  1193037426    1 sancion (auxiliar del INPEC)
+
+NUMEROS DE PROCESO (Procuraduria)
+  JO0052023     Alcaldia de Girardot
+  MAM-9561-24   Distrito Especial de Ciencia, Tecnologia e Innovacion
+  NRCD2006008   Superintendencia Nacional de Salud
+  2023-0272     Banco Agrario
+
+CONTRATACION PUBLICA (SECOP II)
+  CO1.REQ.6299226   Concurso de meritos, Superintendencia de Notariado y Registro (adjudicado; muestra el NIT)
+  901848511         El mismo proceso, buscado por el NIT del proveedor
+  CO1.REQ.8470190   Proceso adjudicado, NIT 900004916
+  CO1.REQ.6690779   Proceso publicado, sin proveedor todavia (CIAC S.A.)
+  (SECOP es una muestra de 100 procesos: estos ejemplos cambian si se vuelve a correr main.py)
+
+CONTRALORIA (se busca por el nombre; no trae cedulas)
+  Contraloría de Medellín               2 resultados (General de Medellin y Distrital de Medellin)
+  Contraloría General de la República   3 resultados (incluye el Fondo de Bienestar Social)
+  Santa Marta                           2 resultados (Contraloria Distrital y su Fondo de Bienestar)
+  Contraloría Cali                      3 resultados (Municipal de Cali, General de Santiago de Cali...)
+  Pereira                               1 resultado (Contraloria Municipal de Pereira)
+
+SIN RESULTADOS
+  99999999      "No encontramos registros"
+
+
+

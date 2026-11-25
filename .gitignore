@@ -8,3 +8,6 @@ __pycache__/
 *.xlsx
 *.csv
 data_warehouse/*.db
+App/datos_usuario/
+.venv/
+.streamlit/secrets.toml

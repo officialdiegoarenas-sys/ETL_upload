@@ -42,6 +42,7 @@ from pipeline.datos_fiscalia import ejecutar_pipeline_datos_fiscalia
 
 # Data Warehouse SQLite
 from data_warehouse import cargar_gold_al_warehouse
+from data_warehouse.consulta import construir_tablas as construir_consulta
 
 
 def ruta(*partes):
@@ -88,10 +89,8 @@ def modulo_contraloria():
 def modulo_procuraduria():
     if not hay_conexion():
         raise ConnectionError("Sin conexión a datos.gov.co, se omite.")
-    url = (
-        "https://www.datos.gov.co/resource/iaeu-rcn6.csv"
-        "?$limit=1000&$order=fecha_efectos_juridicos%20DESC"
-    )
+    # Toda la base de la Procuraduría (se descarga paginada en el módulo de extracción)
+    url = "https://www.datos.gov.co/resource/iaeu-rcn6.csv"
     bronze = ruta("data", "bronze", "procuraduria_raw.csv")
     silver = ruta("data", "silver", "procuraduria_clean.csv")
     gold = ruta("data", "gold", "resumen_procuraduria_gold.csv")
@@ -178,6 +177,18 @@ def ejecutar_pipeline_completo():
         logging.exception("Error durante la carga al Data Warehouse")
 
     # ======================================================
+    # CAPA GOLD DE CONSULTA (cédula / número de proceso)
+    # ======================================================
+
+    consulta_ok = False
+    try:
+        filas = construir_consulta()
+        consulta_ok = True
+        logging.info("Capa de consulta construida: %s", filas)
+    except Exception:
+        logging.exception("Error construyendo la capa de consulta")
+
+    # ======================================================
     # RESUMEN
     # ======================================================
 
@@ -185,6 +196,7 @@ def ejecutar_pipeline_completo():
     for modulo, ok in resultados.items():
         logging.info("  %-18s %s", modulo, "OK" if ok else "FALLÓ")
     logging.info("  %-18s %s", "DATA WAREHOUSE", "OK" if cargado else "FALLÓ")
+    logging.info("  %-18s %s", "CONSULTA", "OK" if consulta_ok else "FALLÓ")
     logging.info("=======================================================")
 
     with open(log_txt, 'a', encoding='utf-8') as f:

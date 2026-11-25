@@ -17,7 +17,7 @@ sources:
     timeout_seconds: 30 #Si no tengo los datos en 30 segundos, se cancela la solicitud y se considera un error.
     max_retries: 3 #Debe esperar un momento y volver a intentar descargar los datos hasta 3 veces si la pagina no responde o si hay un error de red.
   api_procuraduria:
-    url: "https://www.datos.gov.co/resource/iaeu-rcn6.csv?$limit=1000&$order=fecha_efectos_juridicos%20DESC"
+    url: "https://www.datos.gov.co/resource/iaeu-rcn6.csv"   # toda la base, descargada paginada (25.000 filas por solicitud)
     timeout_seconds: 45 #Si no tengo los datos en 30 segundos, se cancela la solicitud y se considera un error.
     max_retries: 3 #debe esperar un momento y volver a intentar descargar los datos hasta 3 veces si la pagina no responde o si hay un error de red.
   api_policia:
@@ -35,3 +35,21 @@ execution:
 
 Repository: "https://github.com/officialdiegoarenas-sys/ETL_upload"
 Date: "2026-09-29"
+
+
+# Dashboard (Streamlit) - carpeta App dentro de la raiz del proyecto (el "medallon" de clase)
+app:
+  nombre: "Tablero de Entidades de Control"
+  carpeta: "App"
+  fuente_datos: "api"            # "api" consume FastAPI (si no responde, usa el csv) | "csv" lee data/gold directo
+  api_url: "http://127.0.0.1:8000"
+  datasets:                       # nombre logico -> archivo de la capa Gold
+    etapa: "fiscalia_procesos_etapa_gold.csv"
+    departamento: "fiscalia_procesos_departamento_gold.csv"
+    anio_capitulo: "fiscalia_procesos_año_capitulo_gold.csv"
+    top_delitos: "fiscalia_top_delitos_gold.csv"
+    sentencias: "fiscalia_procesados_sentencias_gold.csv"
+    perfil: "fiscalia_perfil_condenados_gold.csv"
+    secop: "datos_secop_gold.csv"
+    procuraduria: "resumen_procuraduria_gold.csv"
+    contraloria: "dataset_contraloria.csv"
